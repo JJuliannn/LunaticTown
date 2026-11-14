@@ -1,0 +1,40 @@
+{
+  "_readme": "kind=design: decisión libre del equipo. kind=science: dato real que necesita fuente. Un parámetro science solo pasa a 'verified' con source_url. Mientras tanto el juego usa playtest_value (unidades de juego, NO reales).",
+  "status_values": ["needs_source", "verified", "open_question"],
+  "design": {
+    "crew_size": { "value": null, "status": "open_question", "playtest_value": 4 },
+    "tick_unit": { "value": null, "status": "open_question", "playtest_value": "1 tick = 1 hora de juego" },
+    "oxygen_tank_share": { "value": null, "status": "open_question", "note": "La mentora mencionó 30%. Confirmar qué significa." },
+    "game_mode": { "value": null, "status": "open_question", "playtest_value": "turn_based" }
+  },
+  "science": {
+    "oxygen_per_crew_per_day": { "value": null, "unit": "to_define", "status": "needs_source", "playtest_value": 1, "source_url": null, "candidate_sources": ["NASA, soporte vital de la ISS"] },
+    "water_per_crew_per_day": { "value": null, "unit": "to_define", "status": "needs_source", "playtest_value": 1, "source_url": null, "candidate_sources": ["NASA, soporte vital de la ISS"] },
+    "food_per_crew_per_day": { "value": null, "unit": "to_define", "status": "needs_source", "playtest_value": 1, "source_url": null, "candidate_sources": ["NASA, nutrición de astronautas"] },
+    "radiation_limit_crew": { "value": null, "unit": "to_define", "status": "needs_source", "playtest_value": 100, "source_url": null, "candidate_sources": ["límites de exposición de la NASA"] },
+    "moon": {
+      "day_night_cycle_length": { "value": null, "unit": "days", "status": "needs_source", "playtest_value": 30, "source_url": null },
+      "surface_radiation_dose": { "value": null, "unit": "to_define", "status": "needs_source", "playtest_value": 1, "source_url": null, "candidate_sources": ["LRO CRaTER (PDS)"] },
+      "solar_irradiance": { "value": null, "unit": "to_define", "status": "needs_source", "playtest_value": 1, "source_url": null },
+      "zones": {
+        "_note": "Valores por zona. heat en escala de juego 0-100. sunlight_share = fracción del ciclo con luz (0-1). radiation_factor multiplica surface_radiation_dose. Candidatas: LRO Diviner (temperatura), LOLA (iluminación/topografía), CRaTER (radiación).",
+        "south_pole": {
+          "name_es": "Polo sur",
+          "latitude_deg": { "value": null, "unit": "deg", "status": "needs_source", "playtest_value": -89, "source_url": null },
+          "sunlight_share": { "value": null, "unit": "fraction", "status": "needs_source", "playtest_value": 0.8, "source_url": null, "candidate_sources": ["LRO LOLA (PDS)"] },
+          "day_heat_peak": { "value": null, "unit": "game_heat_0_100", "status": "needs_source", "playtest_value": 35, "source_url": null, "candidate_sources": ["LRO Diviner (PDS)"] },
+          "night_heat_floor": { "value": null, "unit": "game_heat_0_100", "status": "needs_source", "playtest_value": 5, "source_url": null, "candidate_sources": ["LRO Diviner (PDS)"] },
+          "radiation_factor": { "value": null, "unit": "multiplier", "status": "needs_source", "playtest_value": 1, "source_url": null, "candidate_sources": ["LRO CRaTER (PDS)"] }
+        },
+        "equator": {
+          "name_es": "Ecuador",
+          "latitude_deg": { "value": null, "unit": "deg", "status": "needs_source", "playtest_value": 0, "source_url": null },
+          "sunlight_share": { "value": null, "unit": "fraction", "status": "needs_source", "playtest_value": 0.5, "source_url": null, "candidate_sources": ["LRO LOLA (PDS)"] },
+          "day_heat_peak": { "value": null, "unit": "game_heat_0_100", "status": "needs_source", "playtest_value": 95, "source_url": null, "candidate_sources": ["LRO Diviner (PDS)"] },
+          "night_heat_floor": { "value": null, "unit": "game_heat_0_100", "status": "needs_source", "playtest_value": 15, "source_url": null, "candidate_sources": ["LRO Diviner (PDS)"] },
+          "radiation_factor": { "value": null, "unit": "multiplier", "status": "needs_source", "playtest_value": 1, "source_url": null, "candidate_sources": ["LRO CRaTER (PDS)"] }
+        }
+      }
+    }
+  }
+}
