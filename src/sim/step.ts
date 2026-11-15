@@ -1,5 +1,5 @@
 import { runCrew } from './crew';
-import { runBuildings } from './processes';
+import { runStations } from './processes';
 import { LUNAR_HOURS_PER_CYCLE, localHourOf, sunAt } from './sun';
 import type { GameState, ScenarioConfig } from './types';
 
@@ -23,17 +23,17 @@ function stepHours(state: GameState, config: ScenarioConfig, dtHours: number): G
   const zone = config.zones[state.zoneId];
   const sun = sunAt(localHourOf(state, config.time), zone.latitudeDeg.value);
 
-  const machines = runBuildings(state, config, sun, dtHours);
-  const crew = runCrew(machines.resources, state.crew, config, dtHours);
+  const stations = runStations(state, config, sun, dtHours);
+  const crew = runCrew(state.resources, state.crew, config, dtHours);
 
   const anyoneAlive = crew.crew.some((a) => a.alive);
   return {
     ...state,
     elapsedLunarHours: state.elapsedLunarHours + dtHours,
     resources: crew.resources,
-    buildingActivity: machines.activity,
+    stations,
     crew: crew.crew,
     status: anyoneAlive ? 'playing' : 'lost',
-    lostReasonEs: anyoneAlive ? null : `La tripulación murió por ${crew.deathCauseEs ?? 'causas desconocidas'}.`,
+    lostReasonEs: anyoneAlive ? null : `El astronauta murió por ${crew.deathCauseEs ?? 'causas desconocidas'}.`,
   };
 }

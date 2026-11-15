@@ -1,6 +1,15 @@
 // Pure terrain generation for the side view. Returns surface height (in tiles,
 // measured from the bottom of the world) for each column. No rendering here.
 
+export interface CraterOptions {
+  /** Tiles the rim rises above the crater floor. */
+  depth: number;
+  /** Columns the wall takes to climb from the floor to the rim (one step per column). */
+  wallWidth: number;
+  /** Flat columns on top of the rim before the hills start. */
+  rimWidth: number;
+}
+
 export interface TerrainOptions {
   seed: number;
   columns: number;
@@ -8,6 +17,8 @@ export interface TerrainOptions {
   amplitude: number;
   /** Columns around the center kept flat for the base. */
   flatRadius: number;
+  /** When set, the flat pad is the floor of a crater and walls climb to a flat rim on both sides. */
+  crater?: CraterOptions;
 }
 
 /** Small deterministic PRNG so the same zone always gets the same terrain. */
@@ -22,6 +33,8 @@ function mulberry32(seed: number): () => number {
   };
 }
 
+const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
+
 export function generateTerrain(opts: TerrainOptions): number[] {
   const rand = mulberry32(opts.seed);
   // Sum of a few sine waves with random phase: smooth hills, cheap and deterministic.
@@ -32,19 +45,22 @@ export function generateTerrain(opts: TerrainOptions): number[] {
   }));
   const totalWeight = waves.reduce((s, w) => s + w.weight, 0);
   const center = Math.floor(opts.columns / 2);
-  const centerHeight = opts.baseHeight;
+  const crater = opts.crater;
 
   const heights: number[] = [];
   for (let x = 0; x < opts.columns; x++) {
-    const noise = waves.reduce((s, w) => s + Math.sin(x * w.freq + w.phase) * w.weight, 0) / totalWeight;
-    let h = Math.round(opts.baseHeight + noise * opts.amplitude);
+    const noise = (waves.reduce((s, w) => s + Math.sin(x * w.freq + w.phase) * w.weight, 0) / totalWeight) * opts.amplitude;
     const dist = Math.abs(x - center);
-    if (dist <= opts.flatRadius) {
-      h = centerHeight;
-    } else if (dist <= opts.flatRadius + 4) {
-      // Blend from flat pad into the hills.
-      const t = (dist - opts.flatRadius) / 4;
-      h = Math.round(centerHeight * (1 - t) + h * t);
+    let h: number;
+    if (crater) {
+      // Floor, then a stepped wall, then a flat rim, then hills fading in.
+      const wallStart = opts.flatRadius + 1;
+      const rise = Math.round(crater.depth * clamp01((dist - wallStart) / crater.wallWidth));
+      const hillsStart = wallStart + crater.wallWidth + crater.rimWidth;
+      h = Math.round(opts.baseHeight + rise + noise * clamp01((dist - hillsStart) / 4));
+    } else {
+      // Flat pad for the base, blended into the hills over 4 columns.
+      h = Math.round(opts.baseHeight + noise * clamp01((dist - opts.flatRadius) / 4));
     }
     heights.push(Math.max(1, h));
   }

@@ -1,11 +1,17 @@
-import { BUILDING_IDS, type Astronaut, type BuildingId, type GameState, type ScenarioConfig, type ZoneId } from './types';
-
-const CREW_NAMES = ['Ana', 'Luis', 'Sofía', 'Mateo', 'Valeria', 'Diego'];
+import {
+  BUILDING_IDS,
+  type Astronaut,
+  type BuildingId,
+  type GameState,
+  type ScenarioConfig,
+  type StationState,
+  type ZoneId,
+} from './types';
 
 function createAstronaut(id: number): Astronaut {
   return {
     id,
-    name: CREW_NAMES[id % CREW_NAMES.length],
+    name: id === 0 ? 'Astronauta' : `Astronauta ${id + 1}`,
     alive: true,
     oxygen: 100,
     water: 100,
@@ -15,8 +21,10 @@ function createAstronaut(id: number): Astronaut {
   };
 }
 
-export function zeroPerBuilding(): Record<BuildingId, number> {
-  return Object.fromEntries(BUILDING_IDS.map((id) => [id, 0])) as Record<BuildingId, number>;
+function emptyStations(): Record<BuildingId, StationState> {
+  return Object.fromEntries(
+    BUILDING_IDS.map((id) => [id, { built: false, hoursLeft: null, ready: false, stored: 0 }]),
+  ) as Record<BuildingId, StationState>;
 }
 
 export function createInitialState(config: ScenarioConfig, zoneId: ZoneId): GameState {
@@ -27,8 +35,7 @@ export function createInitialState(config: ScenarioConfig, zoneId: ZoneId): Game
     lostReasonEs: null,
     shipUnpacked: false,
     resources: { ...config.startResources },
-    buildings: zeroPerBuilding(),
-    buildingActivity: zeroPerBuilding(),
+    stations: emptyStations(),
     crew: Array.from({ length: config.crewSize }, (_, i) => createAstronaut(i)),
   };
 }

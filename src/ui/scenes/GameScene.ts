@@ -1,13 +1,12 @@
 import Phaser from 'phaser';
 import { buildMoonScenario } from '../../scenarios/moon';
-import { build, unpackShip } from '../../sim/actions';
+import { build, operate, unpackShip, type ActionResult } from '../../sim/actions';
 import { createInitialState } from '../../sim/state';
 import { step } from '../../sim/step';
 import { LUNAR_HOURS_PER_CYCLE, localHourOf, sunAt } from '../../sim/sun';
-import { surfaceTemperatureKelvin } from '../../sim/temperature';
-import { generateTerrain } from '../../sim/terrain';
-import type { GameState, ScenarioConfig, ZoneConfig, ZoneId } from '../../sim/types';
-import { BuildMenu } from '../buildMenu';
+import { zoneSurfaceKelvin, zoneTemperatureVerified } from '../../sim/temperature';
+import { generateTerrain, type CraterOptions } from '../../sim/terrain';
+import type { BuildingId, GameState, ScenarioConfig, ZoneConfig, ZoneId } from '../../sim/types';
 import { Hud } from '../hud';
 import { COLORS, FONT, GAME_HEIGHT, GAME_WIDTH, TEXT } from '../theme';
 import { PLAYER, TILE, WORLD_COLUMNS } from '../world/constants';
@@ -16,16 +15,36 @@ import { Sky } from '../world/sky';
 import { PAD_RADIUS_TILES, Structures } from '../world/structures';
 import { buildTerrain, surfaceY } from '../world/terrain';
 
-// Terrain shape per zone. Game design values, not real topography (LOLA later).
-const ZONE_TERRAIN: Record<ZoneId, { seed: number; amplitude: number }> = {
+// World layout per zone. Game design values, not real topography (LOLA later).
+interface ZoneWorld {
+  seed: number;
+  amplitude: number;
+  crater?: CraterOptions;
+  /** Site positions (tiles from the base) that differ from the default layout. */
+  slots?: Partial<Record<BuildingId, number>>;
+}
+const ZONE_WORLD: Record<ZoneId, ZoneWorld> = {
   south_pole: { seed: 1101, amplitude: 6 },
+  // Base on the dark floor next to the ice; the panels sit up on the sunlit rim.
+  shadowed_crater: {
+    seed: 3303,
+    amplitude: 4,
+    crater: { depth: 9, wallWidth: 9, rimWidth: 10 },
+    slots: { solar_panels: -32 },
+  },
   equator: { seed: 2202, amplitude: 3 },
 };
 
 /** Time speeds cycled with T. Useful for playtesting. */
 const SPEEDS = [1, 5, 20];
 
-/** Side-view game screen: runs the simulation and draws the world, HUD and build menu. */
+/** How far above the crater floor the astronaut must climb to leave the shadow. */
+const SHADE_CLEARANCE_PX = 4 * TILE;
+
+/**
+ * Side-view game screen. One astronaut walks to each site and presses E to build,
+ * start a batch or collect. Nothing reaches the base unless the player collects it.
+ */
 export class GameScene extends Phaser.Scene {
   private state!: GameState;
   private scenario!: ScenarioConfig;
@@ -34,9 +53,10 @@ export class GameScene extends Phaser.Scene {
   private hud!: Hud;
   private sky!: Sky;
   private structures!: Structures;
-  private menu!: BuildMenu;
   private speedIndex = 0;
   private gameOverShown = false;
+  /** Top of the ground under the base. */
+  private floorY = 0;
 
   constructor() {
     super('Game');
@@ -58,19 +78,21 @@ export class GameScene extends Phaser.Scene {
     this.addParallaxStars(worldWidth);
     this.sky = new Sky(this);
 
-    const terrainShape = ZONE_TERRAIN[this.zone.id];
+    const layout = ZONE_WORLD[this.zone.id];
     const heights = generateTerrain({
-      seed: terrainShape.seed,
+      seed: layout.seed,
       columns: WORLD_COLUMNS,
       baseHeight: 6,
-      amplitude: terrainShape.amplitude,
+      amplitude: layout.amplitude,
       flatRadius: PAD_RADIUS_TILES,
+      crater: layout.crater,
     });
     const ground = buildTerrain(this, heights, worldHeight);
 
     const centerX = worldWidth / 2;
     const groundY = surfaceY(heights, worldHeight, centerX);
-    this.structures = new Structures(this, centerX, groundY);
+    this.floorY = groundY;
+    this.structures = new Structures(this, centerX, (x) => surfaceY(heights, worldHeight, x), layout.slots);
 
     this.player = new Player(this, centerX, groundY - PLAYER.height);
     this.physics.add.collider(this.player.body, ground);
@@ -80,13 +102,11 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player.body, true, 0.1, 0.1);
 
     this.hud = new Hud(this, this.zone);
-    this.menu = new BuildMenu(this);
 
     const kb = this.input.keyboard!;
     kb.on('keydown-ESC', () => this.scene.start('Menu'));
-    kb.on('keydown-E', () => this.menu.toggle());
+    kb.on('keydown-E', () => this.interact());
     kb.on('keydown-T', () => (this.speedIndex = (this.speedIndex + 1) % SPEEDS.length));
-    kb.on('keydown', (event: KeyboardEvent) => this.onDigit(Number(event.key)));
   }
 
   update(_time: number, deltaMs: number): void {
@@ -98,36 +118,53 @@ export class GameScene extends Phaser.Scene {
     const localHour = localHourOf(this.state, this.scenario.time);
     const latitude = this.zone.latitudeDeg.value;
     const sun = sunAt(localHour, latitude);
-    this.sky.update(sun);
+    // In a shadowed crater only the rim sees the Sun: dark while the astronaut is down on the floor.
+    const playerFeetY = this.player.body.y + PLAYER.height;
+    this.sky.update(sun, this.zone.permanentShadow && playerFeetY > this.floorY - SHADE_CLEARANCE_PX);
     this.structures.update(this.state, this.scenario);
-    this.menu.update(this.state, this.scenario);
-    this.hud.updateBase(this.state, this.scenario);
+    this.hud.updateBase(this.state, this.scenario, deltaMs);
     this.hud.updateEnvironment({
       localHour,
       isDay: sun.isDay,
       cycleNumber:
         Math.floor((this.scenario.time.startLocalHour + this.state.elapsedLunarHours) / LUNAR_HOURS_PER_CYCLE) + 1,
-      surfaceKelvin: surfaceTemperatureKelvin(this.scenario.temperature, latitude, localHour),
-      temperatureVerified: this.scenario.temperature.verified,
+      surfaceKelvin: zoneSurfaceKelvin(this.scenario.temperature, this.zone, localHour),
+      temperatureVerified: zoneTemperatureVerified(this.scenario.temperature, this.zone),
+      temperatureNoteEs: this.zone.shadowFloorKelvin
+        ? 'Fondo del cráter: valor de prueba, sin fuente todavía'
+        : 'Modelo basado en Diviner, pendiente de revisión',
       speed,
     });
+
+    const site = this.state.status === 'playing' ? this.structures.siteAt(this.player.body.x) : null;
+    this.hud.setPrompt(site ? this.structures.promptEs(site, this.state, this.scenario) : '');
 
     if (this.state.status === 'lost' && !this.gameOverShown) this.showGameOver();
   }
 
-  private onDigit(digit: number): void {
-    if (!this.menu.isOpen || !Number.isInteger(digit) || digit < 1) return;
-    const choice = this.menu.choiceFor(digit, this.state);
-    if (!choice) return;
-    const result =
-      choice.kind === 'unpack' ? unpackShip(this.state, this.scenario) : build(this.state, this.scenario, choice.id);
+  /** E key: do whatever makes sense at the site where the astronaut is standing. */
+  private interact(): void {
+    if (this.state.status !== 'playing') return;
+    const site = this.structures.siteAt(this.player.body.x);
+    if (!site) return;
+
+    let result: ActionResult;
+    if (site.kind === 'ship') {
+      if (this.state.shipUnpacked) return;
+      result = unpackShip(this.state, this.scenario);
+    } else {
+      if (!this.state.shipUnpacked) return;
+      result = this.state.stations[site.id].built
+        ? operate(this.state, this.scenario, site.id)
+        : build(this.state, this.scenario, site.id);
+    }
     this.state = result.state;
     this.hud.showMessage(result.messageEs);
   }
 
   private showGameOver(): void {
     this.gameOverShown = true;
-    if (this.menu.isOpen) this.menu.toggle();
+    this.hud.setPrompt('');
     const cx = GAME_WIDTH / 2;
     const cy = GAME_HEIGHT / 2;
     const cycles = (this.state.elapsedLunarHours / LUNAR_HOURS_PER_CYCLE).toFixed(1);
@@ -135,7 +172,7 @@ export class GameScene extends Phaser.Scene {
       this.add.rectangle(cx, cy, 720, 220, COLORS.panel, 0.95).setStrokeStyle(2, COLORS.warning),
       this.add.text(cx, cy - 60, 'Misión fallida', { fontFamily: FONT, fontSize: '40px', color: TEXT.warning }).setOrigin(0.5),
       this.add
-        .text(cx, cy + 5, `${this.state.lostReasonEs ?? ''}\nSobrevivieron ${cycles} ciclos lunares.`, {
+        .text(cx, cy + 5, `${this.state.lostReasonEs ?? ''}\nSobrevivió ${cycles} ciclos lunares.`, {
           fontFamily: FONT,
           fontSize: '20px',
           color: TEXT.primary,

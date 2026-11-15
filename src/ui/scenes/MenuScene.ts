@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { ZONE_IDS } from '../../scenarios/moon';
+import type { ZoneId } from '../../sim/types';
 import { COLORS, FONT, GAME_HEIGHT, GAME_WIDTH, TEXT } from '../theme';
 import { addButton, addStars } from '../widgets';
 
@@ -18,9 +20,9 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create(): void {
-    // Dev shortcut: open the page with ?zone=south_pole or ?zone=equator to skip the menus once.
-    const zone = new URLSearchParams(window.location.search).get('zone');
-    if (!shortcutUsed && (zone === 'south_pole' || zone === 'equator')) {
+    // Dev shortcut: open the page with ?zone=<zone id> (e.g. ?zone=shadowed_crater) to skip the menus once.
+    const zone = new URLSearchParams(window.location.search).get('zone') as ZoneId | null;
+    if (!shortcutUsed && zone && ZONE_IDS.includes(zone)) {
       shortcutUsed = true;
       this.scene.start('Game', { zoneId: zone });
       return;

@@ -1,12 +1,19 @@
 import Phaser from 'phaser';
 import { buildMoonScenario, ZONE_IDS } from '../../scenarios/moon';
-import { surfaceTemperatureKelvin } from '../../sim/temperature';
+import { zoneSurfaceKelvin, zoneTemperatureVerified } from '../../sim/temperature';
 import type { TemperatureModel, ZoneConfig } from '../../sim/types';
 import { COLORS, FONT, GAME_HEIGHT, GAME_WIDTH, TEXT } from '../theme';
 import { addBar, addButton, addStars } from '../widgets';
 
-const CARD_W = 440;
-const CARD_H = 380;
+const CARD_W = 370;
+const CARD_H = 420;
+const CARD_GAP = 30;
+
+const DIFFICULTY_COLOR: Record<string, string> = {
+  Normal: '#7fffa0',
+  Difícil: '#ffc857',
+  Hardcore: '#ff5d5d',
+};
 
 export class ZoneSelectScene extends Phaser.Scene {
   constructor() {
@@ -21,31 +28,28 @@ export class ZoneSelectScene extends Phaser.Scene {
     const cx = GAME_WIDTH / 2;
 
     this.add
-      .text(cx, 70, 'Elige dónde construir la base', {
-        fontFamily: FONT,
-        fontSize: '40px',
-        color: TEXT.primary,
-      })
+      .text(cx, 60, 'Elige dónde construir la base', { fontFamily: FONT, fontSize: '40px', color: TEXT.primary })
       .setOrigin(0.5);
 
-    const gap = 60;
-    const startX = cx - (ZONE_IDS.length * CARD_W + (ZONE_IDS.length - 1) * gap) / 2 + CARD_W / 2;
+    const startX = cx - (ZONE_IDS.length * CARD_W + (ZONE_IDS.length - 1) * CARD_GAP) / 2 + CARD_W / 2;
     ZONE_IDS.forEach((id, i) => {
-      this.addZoneCard(startX + i * (CARD_W + gap), 340, scenario.zones[id], scenario.temperature);
+      this.addZoneCard(startX + i * (CARD_W + CARD_GAP), 335, scenario.zones[id], scenario.temperature);
     });
 
-    const anyUnverified = !scenario.temperature.verified || ZONE_IDS.some((id) => hasUnverified(scenario.zones[id]));
+    const zones = ZONE_IDS.map((id) => scenario.zones[id]);
+    const anyUnverified = zones.some((z) => !zoneTemperatureVerified(scenario.temperature, z) || !z.radiationFactor.verified);
     if (anyUnverified) {
       this.add
-        .text(cx, 580, '* Temperaturas según un modelo basado en Diviner, pendientes de revisión. La radiación es un valor de prueba.', {
-          fontFamily: FONT,
-          fontSize: '15px',
-          color: TEXT.warning,
-        })
-        .setOrigin(0.5);
+        .text(
+          cx,
+          578,
+          '* Temperaturas según un modelo basado en Diviner, pendientes de revisión. El fondo del cráter y la radiación son valores de prueba.',
+          { fontFamily: FONT, fontSize: '14px', color: TEXT.warning, align: 'center', wordWrap: { width: GAME_WIDTH - 120 } },
+        )
+        .setOrigin(0.5, 0);
     }
 
-    addButton(this, cx, GAME_HEIGHT - 60, 'Volver', () => this.scene.start('Menu'), 180, 44);
+    addButton(this, cx, GAME_HEIGHT - 50, 'Volver', () => this.scene.start('Menu'), 180, 44);
   }
 
   private addZoneCard(x: number, y: number, zone: ZoneConfig, model: TemperatureModel): void {
@@ -54,32 +58,39 @@ export class ZoneSelectScene extends Phaser.Scene {
       .setStrokeStyle(2, COLORS.border)
       .setInteractive({ useHandCursor: true });
 
-    const left = x - CARD_W / 2 + 30;
-    const top = y - CARD_H / 2 + 25;
+    const left = x - CARD_W / 2 + 24;
+    const top = y - CARD_H / 2 + 20;
+    const width = CARD_W - 48;
 
-    this.add.text(left, top, zone.nameEs, { fontFamily: FONT, fontSize: '30px', color: TEXT.primary });
-    this.add.text(left, top + 45, `Latitud: ${zone.latitudeDeg.value}°`, {
+    this.add.text(left, top, zone.nameEs, { fontFamily: FONT, fontSize: '28px', color: TEXT.primary });
+    this.add.text(left, top + 40, `Latitud: ${zone.latitudeDeg.value}°`, { fontFamily: FONT, fontSize: '15px', color: TEXT.muted });
+    this.add.text(left + width, top + 40, zone.difficultyEs, {
       fontFamily: FONT,
-      fontSize: '16px',
-      color: TEXT.muted,
-    });
+      fontSize: '15px',
+      fontStyle: 'bold',
+      color: DIFFICULTY_COLOR[zone.difficultyEs] ?? TEXT.primary,
+    }).setOrigin(1, 0);
 
-    const lat = zone.latitudeDeg.value;
-    const noonK = surfaceTemperatureKelvin(model, lat, 12);
-    const dawnK = surfaceTemperatureKelvin(model, lat, 5);
-    const tempMark = model.verified ? '' : ' *';
-    const rows = [
-      `Mediodía: ${(noonK - 273.15).toFixed(0)} °C${tempMark}`,
-      `Antes del amanecer: ${(dawnK - 273.15).toFixed(0)} °C${tempMark}`,
-      zone.id === 'south_pole' ? 'Hielo de agua en cráteres en sombra' : 'Sin hielo: zona difícil',
-    ];
+    const mark = zoneTemperatureVerified(model, zone) ? '' : ' *';
+    const celsius = (hour: number) => (zoneSurfaceKelvin(model, zone, hour) - 273.15).toFixed(0);
+    const rows = zone.permanentShadow
+      ? [`Siempre: ${celsius(12)} °C${mark}`, 'Nunca sale el Sol en el fondo']
+      : [`Mediodía: ${celsius(12)} °C${mark}`, `Antes del amanecer: ${celsius(5)} °C${mark}`];
     rows.forEach((row, i) =>
-      this.add.text(left, top + 100 + i * 34, row, { fontFamily: FONT, fontSize: '19px', color: TEXT.primary }),
+      this.add.text(left, top + 80 + i * 30, row, { fontFamily: FONT, fontSize: '18px', color: TEXT.primary }),
     );
-    addBar(this, left, top + 220, 'Radiación', zone.radiationFactor.value / 2);
+
+    this.add.text(left, top + 150, zone.summaryEs, {
+      fontFamily: FONT,
+      fontSize: '15px',
+      color: TEXT.muted,
+      wordWrap: { width },
+      lineSpacing: 3,
+    });
+    addBar(this, left, top + 265, 'Radiación', zone.radiationFactor.value / 2);
 
     this.add
-      .text(x, y + CARD_H / 2 - 40, 'Elegir zona', { fontFamily: FONT, fontSize: '20px', color: TEXT.accent })
+      .text(x, y + CARD_H / 2 - 36, 'Elegir zona', { fontFamily: FONT, fontSize: '20px', color: TEXT.accent })
       .setOrigin(0.5);
 
     card
@@ -87,8 +98,4 @@ export class ZoneSelectScene extends Phaser.Scene {
       .on('pointerout', () => card.setStrokeStyle(2, COLORS.border))
       .on('pointerup', () => this.scene.start('Game', { zoneId: zone.id }));
   }
-}
-
-function hasUnverified(zone: ZoneConfig): boolean {
-  return !zone.radiationFactor.verified;
 }

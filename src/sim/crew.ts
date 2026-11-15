@@ -27,19 +27,33 @@ export interface CrewResult {
   deathCauseEs: string | null;
 }
 
+/** Stocks each need draws from, in order. Produced oxygen is used first; the reserve tanks are the safety net. */
+export const NEED_SOURCES: Record<'oxygen' | 'water' | 'food', ResourceId[]> = {
+  oxygen: ['oxygen', 'oxygenReserve'],
+  water: ['water'],
+  food: ['vegetables', 'protein', 'rations'],
+};
+
+/** kg the living crew uses per lunar hour. Consumption data is per Earth day; one lunar hour is cycleDays / 24 Earth days. */
+export function crewNeedsPerHour(config: ScenarioConfig, aliveCount: number): Record<'oxygen' | 'water' | 'food', number> {
+  const earthDaysPerHour = config.dayNightCycleLengthDays.value / LUNAR_HOURS_PER_CYCLE;
+  const k = aliveCount * earthDaysPerHour;
+  return {
+    oxygen: config.oxygenPerCrewPerDay.value * k,
+    water: config.waterPerCrewPerDay.value * k,
+    food: config.foodPerCrewPerDay.value * k,
+  };
+}
+
 export function runCrew(resources: Resources, crew: Astronaut[], config: ScenarioConfig, dtHours: number): CrewResult {
   const next = { ...resources };
   const rules = config.crewRules;
-  const alive = crew.filter((a) => a.alive).length;
-  // Consumption data is per Earth day; one lunar hour of game time is cycleDays / 24 Earth days.
-  const earthDays = (config.dayNightCycleLengthDays.value / LUNAR_HOURS_PER_CYCLE) * dtHours;
-  const perPerson = (kgPerDay: number) => kgPerDay * alive * earthDays;
+  const needs = crewNeedsPerHour(config, crew.filter((a) => a.alive).length);
 
-  const waterNeeded = perPerson(config.waterPerCrewPerDay.value);
-  // Produced oxygen is used first; the reserve tanks are the safety net.
-  const oxygen = draw(next, ['oxygen', 'oxygenReserve'], perPerson(config.oxygenPerCrewPerDay.value));
-  const water = draw(next, ['water'], waterNeeded);
-  const food = draw(next, ['vegetables', 'protein', 'rations'], perPerson(config.foodPerCrewPerDay.value));
+  const waterNeeded = needs.water * dtHours;
+  const oxygen = draw(next, NEED_SOURCES.oxygen, needs.oxygen * dtHours);
+  const water = draw(next, NEED_SOURCES.water, waterNeeded);
+  const food = draw(next, NEED_SOURCES.food, needs.food * dtHours);
   next.humanWaste += waterNeeded * water * rules.waterToWasteFraction;
 
   let deathCauseEs: string | null = null;

@@ -7,7 +7,7 @@
 // straight lines are OUR assumptions (see data/params.json), not the paper's.
 
 import { LUNAR_HOURS_PER_CYCLE, sunAt } from './sun';
-import type { TemperatureModel } from './types';
+import type { TemperatureModel, ZoneConfig } from './types';
 
 /** Stefan-Boltzmann constant, W m^-2 K^-4 (exact SI value). */
 const SIGMA = 5.670374419e-8;
@@ -44,6 +44,17 @@ export function surfaceTemperatureKelvin(model: TemperatureModel, latitudeDeg: n
   const day = equilibriumKelvin(model, sun.cosIncidence, sun.incidenceDeg);
   const floor = equatorFloorKelvin(model, localHour) * Math.pow(Math.cos(lat * DEG), 0.25);
   return Math.max(day, floor);
+}
+
+/** Ground temperature where the base stands: the Sun model, or a constant floor in permanent shadow. */
+export function zoneSurfaceKelvin(model: TemperatureModel, zone: ZoneConfig, localHour: number): number {
+  if (zone.shadowFloorKelvin) return zone.shadowFloorKelvin.value;
+  return surfaceTemperatureKelvin(model, zone.latitudeDeg.value, localHour);
+}
+
+/** True only when every number behind the zone's temperature is confirmed. */
+export function zoneTemperatureVerified(model: TemperatureModel, zone: ZoneConfig): boolean {
+  return zone.shadowFloorKelvin ? zone.shadowFloorKelvin.verified : model.verified;
 }
 
 export function kelvinToCelsius(kelvin: number): number {

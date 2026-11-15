@@ -1,6 +1,6 @@
 // Pure simulation types. Nothing here knows about rendering.
 
-export type ZoneId = 'south_pole' | 'equator';
+export type ZoneId = 'south_pole' | 'shadowed_crater' | 'equator';
 
 /** A number taken from data/params.json, plus whether it is real (verified) or a playtest value. */
 export interface ParamValue {
@@ -15,6 +15,14 @@ export interface ZoneConfig {
   radiationFactor: ParamValue;
   /** Whether the ice extractor can work here. */
   hasIce: boolean;
+  /** The base sits where sunlight never reaches (floor of a polar crater). Panels must go on the rim. */
+  permanentShadow: boolean;
+  /** Ground temperature in permanent shadow, constant all cycle. Null where the Sun model applies. */
+  shadowFloorKelvin: ParamValue | null;
+  /** Difficulty label for the zone card. */
+  difficultyEs: string;
+  /** One or two lines for the zone card. */
+  summaryEs: string;
 }
 
 export interface TimeConfig {
@@ -60,7 +68,7 @@ export type ResourceId = (typeof RESOURCE_IDS)[number];
 export type Resources = Record<ResourceId, number>;
 export type ResourceAmounts = Partial<Resources>;
 
-/** Order matters: step() runs the machines in this order. */
+/** Stations the player can build, in menu and layout order. */
 export const BUILDING_IDS = [
   'solar_panels',
   'oxygenator',
@@ -71,23 +79,36 @@ export const BUILDING_IDS = [
 ] as const;
 export type BuildingId = (typeof BUILDING_IDS)[number];
 
-/** A machine: every lunar hour it turns inputs into outputs. */
+/** One batch of a processor station: the player starts it, waits, then collects the outputs. */
+export interface JobDef {
+  /** Lunar hours the batch takes (1 lunar hour = 1 real minute at normal speed). */
+  hours: number;
+  inputs: ResourceAmounts;
+  outputs: ResourceAmounts;
+}
+
+/**
+ * A station. Nothing is delivered to the base automatically:
+ * - collector: fills its own storage over time (solar panels); the player collects it.
+ * - processor: the player starts a batch, it runs for a while, then the player collects the result.
+ */
 export interface BuildingDef {
   id: BuildingId;
   nameEs: string;
   descriptionEs: string;
   /** Mission phase in which it becomes available (2 = essential, 3 = necessary). */
   phase: 2 | 3;
-  maxCount: number;
   cost: ResourceAmounts;
-  inputsPerHour: ResourceAmounts;
-  outputsPerHour: ResourceAmounts;
-  /** Output scales with sunlight (solar panels). */
-  needsSunlight: boolean;
+  kind: 'collector' | 'processor';
   /** Only works in zones with ice. */
   needsIce: boolean;
-  /** Energy storage added by each unit. */
-  batteryCapacity: number;
+  /** Collector only. */
+  produces: ResourceId | null;
+  ratePerHour: number;
+  storageCapacity: number;
+  needsSunlight: boolean;
+  /** Processor only. */
+  job: JobDef | null;
 }
 
 export interface CrewRules {
@@ -117,7 +138,8 @@ export interface ScenarioConfig {
   buildings: Record<BuildingId, BuildingDef>;
   startResources: Resources;
   shipSalvage: ResourceAmounts;
-  hullBatteryCapacity: number;
+  /** Most energy the base can hold. */
+  baseBatteryCapacity: number;
   crewRules: CrewRules;
 }
 
@@ -132,6 +154,16 @@ export interface Astronaut {
   morale: number;
 }
 
+export interface StationState {
+  built: boolean;
+  /** Processor: lunar hours left in the running batch, or null if no batch is running. */
+  hoursLeft: number | null;
+  /** Processor: a finished batch is waiting to be collected. */
+  ready: boolean;
+  /** Collector: amount waiting to be collected. */
+  stored: number;
+}
+
 export type MissionStatus = 'playing' | 'lost';
 
 export interface GameState {
@@ -144,8 +176,6 @@ export interface GameState {
   /** False until the player dismantles the ship (phase 1). */
   shipUnpacked: boolean;
   resources: Resources;
-  buildings: Record<BuildingId, number>;
-  /** 0-1: how much of its full rate each machine type ran in the last step. */
-  buildingActivity: Record<BuildingId, number>;
+  stations: Record<BuildingId, StationState>;
   crew: Astronaut[];
 }

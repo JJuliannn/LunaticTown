@@ -9,9 +9,9 @@
   ],
   "design": {
     "crew_size": {
-      "value": null,
-      "status": "open_question",
-      "playtest_value": 4
+      "value": 1,
+      "status": "decided",
+      "note": "Un solo astronauta: el jugador."
     },
     "oxygen_tank_share": {
       "value": null,
@@ -26,6 +26,11 @@
       "value": 24,
       "status": "decided",
       "note": "24 minutos reales = un ciclo lunar completo de día y noche (24 horas locales lunares). 1 minuto real = 1 hora local lunar."
+    },
+    "victory": {
+      "value": null,
+      "status": "open_question",
+      "note": "El equipo busca las condiciones de los experimentos de laboratorio que Artemis quería hacer en la superficie, para usarlas como meta. Pistas: Artemis III Science Definition Team Report (2020), https://science.nasa.gov/wp-content/uploads/2023/07/artemis-iii-science-definition-report-12042020c.pdf; experimento LEAF (Lunar Effects on Agricultural Flora), elegido en 2024 para Artemis III."
     },
     "start_local_hour": {
       "value": null,
@@ -60,14 +65,13 @@
       "source_note": "BVAD Rev2 (2022), Tabla 3-31, Food Solids (sin empaque, masa seca)."
     },
     "radiation_limit_crew": {
-      "value": null,
-      "unit": "to_define",
-      "status": "needs_source",
+      "value": 250,
+      "unit": "mGy-Eq en 30 días (órganos formadores de sangre)",
+      "status": "sourced",
       "playtest_value": 100,
-      "source_url": null,
-      "candidate_sources": [
-        "límites de exposición de la NASA"
-      ]
+      "source_url": "https://www.nasa.gov/sites/default/files/atoms/files/human_integration_design_handbook_revision_1.pdf",
+      "source_note": "NASA Human Integration Design Handbook (NASA/SP-2010-3407/REV1), Tabla 6.8-4 'Dose Limits for Short-Term or Career Non-Cancer Effects', pág. 529. Órganos formadores de sangre (BFO): 250 mGy-Eq en 30 días, 500 en un año. Otros límites de 30 días: cristalino 1000, piel 1500, corazón 250, sistema nervioso central 500.",
+      "game_use": "La dosis del astronauta todavía no se simula. Falta la dosis en la superficie (surface_radiation_dose) para poder usarlo."
     },
     "moon": {
       "day_night_cycle_length": {
@@ -86,7 +90,8 @@
         "source_url": null,
         "candidate_sources": [
           "LRO CRaTER (PDS)"
-        ]
+        ],
+        "context_es": "HIDH Rev 1, sección 6.8.2.3 (pág. 520-521): en la superficie, la Luna misma tapa la mitad del cielo (protección 2π), pero no hay atmósfera ni campo magnético. Los rayos cósmicos que chocan con el suelo producen neutrones, muy penetrantes. El HIDH no da una cifra de dosis en la superficie (es anterior a CRaTER)."
       },
       "solar_irradiance": {
         "value": null,
@@ -99,6 +104,8 @@
         "_note": "Valores por zona. radiation_factor multiplica surface_radiation_dose (candidata: LRO CRaTER). La temperatura sale de temperature_model. Falta fuente para la iluminación del polo sur (candidata: LRO LOLA).",
         "south_pole": {
           "name_es": "Polo sur",
+          "difficulty_es": "Normal",
+          "summary_es": "Hielo de agua en los cráteres cercanos. El Sol pasa bajo, rozando el horizonte.",
           "latitude_deg": {
             "value": -85,
             "status": "decided",
@@ -120,8 +127,51 @@
             "note": "Hielo en cráteres polares en sombra (evidencia: LCROSS). Decisión de diseño: solo el polo tiene extractor de hielo."
           }
         },
+        "shadowed_crater": {
+          "name_es": "Cráter en sombra",
+          "difficulty_es": "Difícil",
+          "summary_es": "La base está junto al hielo, en el fondo de un cráter polar donde nunca llega el Sol. Los paneles van arriba, en el borde.",
+          "latitude_deg": {
+            "value": -85,
+            "status": "decided",
+            "note": "Cráter dentro de la región polar. Solo sirve para el Sol del borde; el fondo usa shadow_floor_kelvin."
+          },
+          "radiation_factor": {
+            "value": null,
+            "unit": "multiplier",
+            "status": "needs_source",
+            "playtest_value": 1,
+            "source_url": null,
+            "candidate_sources": [
+              "LRO CRaTER (PDS)"
+            ]
+          },
+          "has_ice": {
+            "value": true,
+            "status": "decided",
+            "note": "Las regiones en sombra permanente son trampas frías para el hielo (evidencia: LCROSS impactó en Cabeus, una de ellas)."
+          },
+          "permanent_shadow": {
+            "value": true,
+            "status": "decided",
+            "note": "Lección de diseño: el hielo está en la sombra y la energía en la luz. La base está al lado del hielo y el jugador sube al borde para recoger energía."
+          },
+          "shadow_floor_kelvin": {
+            "value": null,
+            "unit": "K",
+            "status": "needs_source",
+            "playtest_value": 40,
+            "source_url": null,
+            "candidate_sources": [
+              "Paige et al. 2010, Science 330, 479-482, 'Diviner Lunar Radiometer Observations of Cold Traps in the Moon's South Polar Region', https://doi.org/10.1126/science.1187726 (resúmenes: ~38 K promedio anual en Cabeus, mínimos de 29 K). Falta leer el artículo."
+            ],
+            "note": "Temperatura constante del fondo del cráter, todo el ciclo."
+          }
+        },
         "equator": {
           "name_es": "Ecuador",
+          "difficulty_es": "Hardcore",
+          "summary_es": "Sin hielo: el agua se trae y se recicla. A largo plazo no alcanza.",
           "latitude_deg": {
             "value": 0,
             "status": "decided"
@@ -139,7 +189,7 @@
           "has_ice": {
             "value": false,
             "status": "decided",
-            "note": "Zona difícil: el agua se trae y se recicla."
+            "note": "Modo hardcore (decisión del equipo, 2026-11-15): el agua se trae y se recicla, y a largo plazo no alcanza. Se deja así a propósito."
           }
         }
       },
@@ -170,27 +220,49 @@
         "our_assumptions": "Entre los puntos del artículo se interpola en línea recta. El piso nocturno de otras latitudes se escala con cos(latitud)^(1/4), que da ~52 K a 85° (artículo: 50 K). Inclinación del eje (1,54°) ignorada."
       },
       "oxygen_from_regolith": {
-        "value": null,
-        "status": "needs_source",
+        "value": {
+          "o2_metric_tons_per_year": 10,
+          "system_mass_metric_tons": 2.7,
+          "system_power_kw": 11.8
+        },
+        "status": "sourced",
         "source_url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
-        "source_note": "BVAD Rev2 sección ISRU (pág. 166): reducción carbotérmica, CH4 + regolito fundido (>1650 °C) -> CO/CO2 -> metanación -> H2O -> electrólisis -> O2. Proceso confirmado; faltan cifras de producción y potencia (Tabla 4-85 ilegible en la extracción, revisar a mano).",
-        "playtest_value": 1
+        "source_note": "BVAD Rev2, Tabla 4-85 'Mass, Power, and Production from Different ISRU Systems', fila 'Lunar: Oxygen from Regolith' (cita Kleinhenz et al. 2020). Nota a de la tabla: solo produce O2 y requiere llevar 2 t de H2 por misión. Proceso (sección ISRU, pág. 166): CH4 + regolito fundido (>1650 °C) -> CO/CO2 -> metanación -> H2O -> electrólisis -> O2.",
+        "derived": {
+          "kwh_per_kg_o2": 10.3,
+          "how": "Cálculo nuestro: 11,8 kW × 8766 h/año ÷ 10 000 kg/año."
+        },
+        "game_use": "Todavía no lo usa el juego: la energía del juego está en unidades de juego, no en kWh. Sirve para fijar la proporción energía/oxígeno del oxigenador cuando la energía tenga unidades reales (falta la fuente de los paneles)."
+      },
+      "plants_in_regolith": {
+        "value": null,
+        "status": "sourced",
+        "source_url": "https://doi.org/10.1038/s42003-022-03334-8",
+        "source_note": "Paul, Elardo y Ferl 2022, Communications Biology 5:382. Arabidopsis sembrada en regolito de Apolo 11, 12 y 17 (900 mg por pozo) contra el simulante JSC-1A.",
+        "findings_es": [
+          "Las semillas germinaron en todas las muestras entre 48 y 60 horas después de sembrar.",
+          "Las plantas en regolito lunar crecieron más lento, con raíces atrofiadas y rosetas más pequeñas; varias mostraron estrés (pigmentación oscura).",
+          "Todas activaron genes de estrés por sal, metales y especies reactivas de oxígeno (71 % de los genes con expresión diferencial).",
+          "El regolito más maduro (Apolo 11, más tiempo expuesto al viento solar) fue el peor; el de Apolo 17 (inmaduro), el menos malo.",
+          "Conclusión del artículo: el regolito sirve como sustrato, pero no es benigno; hay que mitigar su efecto."
+        ],
+        "game_use": "Justifica que la nave traiga sustrato. Idea para la fase 4: mejora 'cultivo en regolito' que ahorra sustrato pero rinde menos. Sin cifras de rendimiento: solo usar de forma cualitativa."
       }
     }
   },
   "game_balance": {
-    "_note": "Balance del juego. Todo son valores de prueba (unidades de juego), NO datos reales. Masa en kg, energía en unidades de juego, tasas por hora lunar (= 1 minuto real).",
+    "_note": "Balance del juego. Todo son valores de prueba (unidades de juego), NO datos reales. Masa en kg, energia en unidades de juego, tiempos en horas lunares (1 hora lunar = 1 minuto real).",
     "status": "needs_source",
     "start_resources": {
-      "energy": 60,
-      "oxygenReserve": 160,
+      "energy": 40,
+      "oxygenReserve": 40,
       "oxygen": 0,
-      "water": 450,
-      "minerals": 60,
+      "water": 120,
+      "minerals": 30,
       "titanium": 0,
       "seeds": 10,
       "substrate": 20,
-      "rations": 140,
+      "rations": 35,
       "vegetables": 0,
       "protein": 0,
       "plantWaste": 0,
@@ -198,9 +270,9 @@
       "nitrogen": 5
     },
     "ship_salvage": {
-      "titanium": 200
+      "titanium": 120
     },
-    "hull_battery_capacity": 60,
+    "base_battery_capacity": 150,
     "crew": {
       "oxygen_bar_drop_per_hour": 60,
       "water_bar_drop_per_hour": 6,
@@ -212,103 +284,116 @@
       "solar_panels": {
         "name_es": "Paneles solares",
         "phase": 2,
-        "max_count": 4,
         "cost": {
           "titanium": 20
         },
-        "inputs_per_hour": {},
-        "outputs_per_hour": {
-          "energy": 14
-        },
+        "kind": "collector",
+        "produces": "energy",
+        "rate_per_hour": 14,
+        "storage_capacity": 100,
         "needs_sunlight": true,
-        "battery_capacity": 120,
-        "description_es": "Energía mientras hay Sol. Traen baterías para la noche."
+        "description_es": "Se cargan solos mientras hay Sol. Ve a recoger la energía."
       },
       "oxygenator": {
         "name_es": "Oxigenador",
         "phase": 2,
-        "max_count": 3,
         "cost": {
           "titanium": 25
         },
-        "inputs_per_hour": {
-          "energy": 4
-        },
-        "outputs_per_hour": {
-          "oxygen": 5
+        "kind": "processor",
+        "job": {
+          "hours": 2,
+          "inputs": {
+            "energy": 8
+          },
+          "outputs": {
+            "oxygen": 9
+          }
         },
         "description_es": "Reducción carbotérmica: saca oxígeno del regolito."
       },
       "ice_extractor": {
         "name_es": "Extractor de hielo",
         "phase": 2,
-        "max_count": 2,
         "cost": {
           "titanium": 25
         },
-        "inputs_per_hour": {
-          "energy": 3,
-          "minerals": 0.25
-        },
-        "outputs_per_hour": {
-          "water": 12
-        },
+        "kind": "processor",
         "needs_ice": true,
+        "job": {
+          "hours": 2,
+          "inputs": {
+            "energy": 8,
+            "minerals": 1
+          },
+          "outputs": {
+            "water": 35
+          }
+        },
         "description_es": "Saca hielo polar y lo purifica con minerales."
+      },
+      "waste_processor": {
+        "name_es": "Baño procesador",
+        "phase": 3,
+        "cost": {
+          "titanium": 15
+        },
+        "kind": "processor",
+        "job": {
+          "hours": 1.5,
+          "inputs": {
+            "humanWaste": 30,
+            "energy": 2
+          },
+          "outputs": {
+            "water": 26,
+            "nitrogen": 2
+          }
+        },
+        "description_es": "Procesa desechos: nitrógeno para las plantas y agua reciclada."
       },
       "hydroponics": {
         "name_es": "Hidroponía",
         "phase": 3,
-        "max_count": 3,
         "cost": {
           "titanium": 15,
           "seeds": 3,
           "substrate": 6
         },
-        "inputs_per_hour": {
-          "energy": 3,
-          "water": 0.5,
-          "nitrogen": 0.2
-        },
-        "outputs_per_hour": {
-          "vegetables": 1.6,
-          "oxygen": 1,
-          "plantWaste": 0.6
+        "kind": "processor",
+        "job": {
+          "hours": 6,
+          "inputs": {
+            "water": 6,
+            "nitrogen": 1,
+            "energy": 10
+          },
+          "outputs": {
+            "vegetables": 9,
+            "oxygen": 2,
+            "plantWaste": 3
+          }
         },
         "description_es": "Rábano, lechuga romana y pak choi con luz artificial."
       },
       "cricket_farm": {
         "name_es": "Cultivo de grillos",
         "phase": 3,
-        "max_count": 2,
         "cost": {
           "titanium": 10
         },
-        "inputs_per_hour": {
-          "plantWaste": 0.5,
-          "water": 0.3
-        },
-        "outputs_per_hour": {
-          "protein": 0.7
+        "kind": "processor",
+        "job": {
+          "hours": 4,
+          "inputs": {
+            "plantWaste": 3,
+            "water": 1
+          },
+          "outputs": {
+            "protein": 4
+          }
         },
         "description_es": "Proteína a partir de restos vegetales."
-      },
-      "waste_processor": {
-        "name_es": "Baño procesador",
-        "phase": 3,
-        "max_count": 2,
-        "cost": {
-          "titanium": 15
-        },
-        "inputs_per_hour": {
-          "humanWaste": 8,
-          "energy": 1
-        },
-        "outputs_per_hour": {
-          "nitrogen": 0.5,
-          "water": 7.6
-        },
-        "description_es": "Procesa desechos: nitrógeno para las plantas y agua reciclada."
       }
     }
   }
