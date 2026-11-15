@@ -9,20 +9,22 @@ export function sunlightFactor(sun: SunState): number {
   return Math.max(0, Math.min(1, sun.cosIncidence / 0.05));
 }
 
+/** @param light 0-1 sunlight on the panels (see environment.ts). */
 export function runStations(
   state: GameState,
   config: ScenarioConfig,
-  sun: SunState,
+  light: number,
   dtHours: number,
 ): Record<BuildingId, StationState> {
   const next = { ...state.stations };
   for (const id of BUILDING_IDS) {
     const station = state.stations[id];
-    if (!station.built) continue;
+    // A broken station does nothing: collectors stop filling, batches pause.
+    if (!station.built || station.broken) continue;
     const def = config.buildings[id];
 
     if (def.kind === 'collector') {
-      const factor = def.needsSunlight ? sunlightFactor(sun) : 1;
+      const factor = def.needsSunlight ? light : 1;
       const stored = Math.min(def.storageCapacity, station.stored + def.ratePerHour * factor * dtHours);
       next[id] = { ...station, stored };
     } else if (station.hoursLeft !== null) {
@@ -33,7 +35,7 @@ export function runStations(
   return next;
 }
 
-export type StationStatus = 'unbuilt' | 'idle' | 'running' | 'ready';
+export type StationStatus = 'unbuilt' | 'broken' | 'idle' | 'running' | 'ready';
 
 /** A collector counts as ready once it holds at least this fraction of its storage. */
 const COLLECTOR_READY_FRACTION = 0.5;
@@ -42,6 +44,7 @@ export function stationStatus(state: GameState, config: ScenarioConfig, id: Buil
   const station = state.stations[id];
   const def = config.buildings[id];
   if (!station.built) return 'unbuilt';
+  if (station.broken) return 'broken';
   if (def.kind === 'collector') {
     return station.stored >= def.storageCapacity * COLLECTOR_READY_FRACTION ? 'ready' : 'running';
   }

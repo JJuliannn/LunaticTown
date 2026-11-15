@@ -13,11 +13,6 @@
       "status": "decided",
       "note": "Un solo astronauta: el jugador."
     },
-    "oxygen_tank_share": {
-      "value": null,
-      "status": "open_question",
-      "note": "La mentora mencionó 30%. Confirmar qué significa."
-    },
     "game_mode": {
       "value": "real_time",
       "status": "decided"
@@ -27,10 +22,37 @@
       "status": "decided",
       "note": "24 minutos reales = un ciclo lunar completo de día y noche (24 horas locales lunares). 1 minuto real = 1 hora local lunar."
     },
-    "victory": {
+    "mission_days": {
+      "value": 30,
+      "unit": "días terrestres",
+      "status": "decided",
+      "note": "Victoria (decisión del equipo, 2026-11-15): al llegar al día 30 con todo en buen estado se puede construir el laboratorio de investigación, y construirlo gana. 30 días es la misión nominal del Surface Habitat de Artemis (ver victory_sources). Con 29,53 días por ciclo, el día 30 llega a las ~24,4 horas lunares (~24 min reales). Qué es 'buen estado' está en game_balance.victory."
+    },
+    "victory_sources": {
       "value": null,
-      "status": "open_question",
-      "note": "El equipo busca las condiciones de los experimentos de laboratorio que Artemis quería hacer en la superficie, para usarlas como meta. Pistas: Artemis III Science Definition Team Report (2020), https://science.nasa.gov/wp-content/uploads/2023/07/artemis-iii-science-definition-report-12042020c.pdf; experimento LEAF (Lunar Effects on Agricultural Flora), elegido en 2024 para Artemis III."
+      "status": "sourced",
+      "note": "De dónde sale la victoria.",
+      "sources": [
+        {
+          "doc": "Burke, Howard y Kessler 2022, 'Internal Layout of a Lunar Surface Habitat', AIAA ASCEND 2022",
+          "source_url": "https://ntrs.nasa.gov/citations/20220013669",
+          "findings_es": [
+            "La misión nominal en la superficie dura 30 días, con 2 tripulantes (sección II y ground rule 1).",
+            "El hábitat de referencia tiene 4 laboratorios: Geología (nivel 1, junto a un puerto para pasar muestras), Biología (nivel 2), Física e Investigación humana (nivel 3), basados en sistemas de la ISS.",
+            "Masas: Biología 890 kg, Investigación humana 724 kg, Física 1172 kg, Geología 835 kg (sección VI).",
+            "Los laboratorios no caben en el límite de 12 t del hábitat; se entregarían después en contenedores logísticos y la tripulación los instala y prueba en misiones siguientes (sección VI).",
+            "La tripulación solo está presente en periodos mayormente iluminados; máximo 24 h de EVA por semana por tripulante (assumptions 3 y 4)."
+          ]
+        },
+        {
+          "doc": "Kessler, Prater, Nickens y Harris 2022, 'Artemis Deep Space Habitation: Enabling a Sustained Human Presence on the Moon and Beyond', IEEE Aerospace",
+          "source_url": "https://ntrs.nasa.gov/citations/20220000245",
+          "findings_es": [
+            "El Surface Habitat da habitabilidad de 30 a 60 días para hasta 4 tripulantes; es base, centro de comunicaciones, instalación científica, taller de EVA y planta de procesamiento de desechos.",
+            "Sin rover, la ciencia a pie se limita a 1-2 km alrededor del hábitat."
+          ]
+        }
+      ]
     },
     "start_local_hour": {
       "value": null,
@@ -65,13 +87,14 @@
       "source_note": "BVAD Rev2 (2022), Tabla 3-31, Food Solids (sin empaque, masa seca)."
     },
     "radiation_limit_crew": {
-      "value": 250,
-      "unit": "mGy-Eq en 30 días (órganos formadores de sangre)",
+      "value": 600,
+      "unit": "mSv (dosis efectiva acumulada en toda la carrera)",
       "status": "sourced",
       "playtest_value": 100,
-      "source_url": "https://www.nasa.gov/sites/default/files/atoms/files/human_integration_design_handbook_revision_1.pdf",
-      "source_note": "NASA Human Integration Design Handbook (NASA/SP-2010-3407/REV1), Tabla 6.8-4 'Dose Limits for Short-Term or Career Non-Cancer Effects', pág. 529. Órganos formadores de sangre (BFO): 250 mGy-Eq en 30 días, 500 en un año. Otros límites de 30 días: cristalino 1000, piel 1500, corazón 250, sistema nervioso central 500.",
-      "game_use": "La dosis del astronauta todavía no se simula. Falta la dosis en la superficie (surface_radiation_dose) para poder usarlo."
+      "source_url": "https://ntrs.nasa.gov/citations/20220000245",
+      "source_note": "Kessler, Prater, Nickens y Harris 2022, 'Artemis Deep Space Habitation', IEEE Aerospace, sección 5 'Radiation protection': en 2021 las Academias Nacionales de EE. UU. respaldaron el estándar de la NASA que limita la dosis de toda la carrera a 600 mSv. Las tormentas solares (SPE) son la mayor amenaza: llegan con poco aviso.",
+      "related_es": "HIDH Rev1, Tabla 6.8-4, pág. 529 (https://www.nasa.gov/sites/default/files/atoms/files/human_integration_design_handbook_revision_1.pdf): límites de 30 días para efectos no cancerígenos: órganos formadores de sangre 250 mGy-Eq, corazón 250, sistema nervioso central 500, cristalino 1000, piel 1500. Están en mGy-Eq (dosis absorbida ponderada), no en mSv, así que no se comparan directamente con la dosis de la superficie.",
+      "game_use": "Tope de la barra de dosis del astronauta. Con la dosis medida en la superficie (~41 mSv en 30 días) no se alcanza en una misión: lo peligroso son las tormentas solares."
     },
     "moon": {
       "day_night_cycle_length": {
@@ -83,14 +106,19 @@
         "source_note": "NASA Moon Fact Sheet, Synodic period (days)."
       },
       "surface_radiation_dose": {
-        "value": null,
-        "unit": "to_define",
-        "status": "needs_source",
+        "value": 1369,
+        "unit": "µSv/día terrestre (dosis equivalente, rayos cósmicos galácticos)",
+        "status": "sourced",
         "playtest_value": 1,
-        "source_url": null,
-        "candidate_sources": [
-          "LRO CRaTER (PDS)"
+        "source_url": "https://doi.org/10.1126/sciadv.aaz1334",
+        "source_note": "Zhang et al. 2020, 'First measurements of the radiation dose on the lunar surface', Science Advances 6(39): eaaz1334 (también https://pmc.ncbi.nlm.nih.gov/articles/PMC7518862/). Instrumento LND del módulo Chang'E 4, cráter von Kármán (cara oculta), enero-febrero de 2019. 'LND measured an average dose equivalent of 1369 μSv/day on the surface of the Moon.' Dosis absorbida total 13,2 µGy/h en silicio; neutrones 23 % del total; factor de calidad medio 4,3; 57,1 µSv/h por partículas cargadas.",
+        "findings_es": [
+          "Es unas 2,6 veces la dosis de rayos cósmicos dentro de la ISS en el mismo periodo (523 µSv/día de GCR, 731 en total).",
+          "El módulo tenía ~1 g/cm² de blindaje, como un rover presurizado; el traje tiene ~0,3 g/cm². El artículo dice que el valor sirve como estimación de la dosis en una caminata (EVA).",
+          "Enterrar la base bajo regolito baja la dosis de partículas cargadas, pero puede subir la de neutrones.",
+          "Se midió en mínimo solar: es un límite superior para la dosis de rayos cósmicos. No hubo tormentas solares; una tormenta puede subir la dosis en órdenes de magnitud detrás de blindaje delgado."
         ],
+        "derived_es": "Cálculo nuestro: 1369 µSv/día × 30 días ≈ 41 mSv por misión al aire libre todo el tiempo; ~500 mSv en un año.",
         "context_es": "HIDH Rev 1, sección 6.8.2.3 (pág. 520-521): en la superficie, la Luna misma tapa la mitad del cielo (protección 2π), pero no hay atmósfera ni campo magnético. Los rayos cósmicos que chocan con el suelo producen neutrones, muy penetrantes. El HIDH no da una cifra de dosis en la superficie (es anterior a CRaTER)."
       },
       "solar_irradiance": {
@@ -100,12 +128,66 @@
         "playtest_value": 1,
         "source_url": null
       },
+      "polar_eclipse_days": {
+        "value": 4,
+        "unit": "días terrestres",
+        "status": "sourced",
+        "playtest_value": 4,
+        "source_url": "https://ntrs.nasa.gov/citations/20220000245",
+        "source_note": "Kessler et al. 2022, sección 1: en la región polar sur la oscuridad dura ~4 días y la luz ~200 días.",
+        "game_use": "Zonas con continuous_light: los paneles reciben Sol todo el tiempo salvo un eclipse de esta duración por misión. Cuándo empieza es un valor de juego (game_balance.polar_eclipse_start_day)."
+      },
+      "south_pole_illumination": {
+        "value": null,
+        "status": "sourced",
+        "source_url": "https://ntrs.nasa.gov/citations/20220000245",
+        "source_doc": "Kessler, Prater, Nickens y Harris 2022, 'Artemis Deep Space Habitation...', IEEE Aerospace, sección 1 y 5",
+        "findings_es": [
+          "En la región polar sur la oscuridad dura menos (~4 días) y la luz más (~200 días); por eso Artemis va al polo: hace posible usar energía solar en misiones largas.",
+          "En el ecuador (Apolo) hay ~14 días de luz y ~14 de oscuridad; las misiones Apolo volvían antes de la noche.",
+          "Los eclipses en el polo duran más de 100 horas: eso define cuánta batería hace falta."
+        ],
+        "game_use": "Aplicado (decisión del equipo, 2026-11-15): en el polo sur y en el borde del cráter los paneles reciben Sol casi todo el tiempo (ver polar_eclipse_days). El ecuador sigue con 12 h de luz y 12 de noche por ciclo (~14 días y ~14 días). La temperatura del suelo sigue saliendo del modelo de Diviner."
+      },
+      "crops": {
+        "value": {
+          "growth_days_lettuce": 28,
+          "growth_days_radish": 25,
+          "growth_days_with_transplanting": 14,
+          "photoperiod_hours_per_day": 16,
+          "edible_fresh_g_per_m2_day": { "lettuce": 131.35, "radish": 91.67 },
+          "edible_dry_g_per_m2_day": { "lettuce": 6.57, "radish": 5.5 },
+          "o2_g_per_m2_day": { "lettuce": 7.78, "radish": 11.86 },
+          "water_transpiration_kg_per_m2_day": { "lettuce": 2.1, "radish": 1.77 }
+        },
+        "status": "sourced",
+        "source_url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+        "source_note": "BVAD Rev2, sección 4.14.1.4.1 'Plant growth' (pág. 171-174): Tabla 4-89 (periodo de crecimiento en días después de sembrar, fotoperiodo 16 h/día, 23 °C), Tabla 4-90 (productividad comestible), Tabla 4-91 (O2 producido y agua transpirada). Texto pág. 171: con trasplante desde un semillero 'the cycle for lettuce is reduced from 28 to ~14 days (Wheeler, et al., 2008)'. El pak choi no está en las tablas (el BVAD lo menciona en las dietas como 'bok choy').",
+        "game_use": "La tanda de hidroponía dura growth_days_with_transplanting (14 días ≈ 11,4 horas lunares), suponiendo un semillero. Las cantidades que da la tanda siguen siendo valores de juego: falta decidir el área de cultivo para convertir g/m²·día en kg."
+      },
+      "asteroid_2024_yr4": {
+        "value": { "diameter_m": 60, "moon_impact_probability": 0.043, "date": "2032-12-22" },
+        "status": "sourced",
+        "source_url": "https://www.space.com/astronomy/asteroids/nasa-raises-the-odds-that-an-asteroid-could-hit-the-moon-in-2032",
+        "source_note": "Junio de 2025: con datos del telescopio James Webb, el CNEOS de la NASA subió la probabilidad de que 2024 YR4 choque con la Luna de 3,8 % a 4,3 %, el 22 de diciembre de 2032. Es un evento único, no una probabilidad anual. Se descartó el choque con la Tierra.",
+        "game_use": "El juego usa la regla del equipo (game_balance.events.meteor_per_year = 4 % por año). El mensaje del juego muestra el dato real."
+      },
+      "lunar_dust": {
+        "value": null,
+        "status": "sourced",
+        "source_doc": "Kessler et al. 2022, sección 5 'Dust Contamination' (PDF del equipo)",
+        "findings_es": [
+          "El polvo lunar es filoso y abrasivo: tapó mecanismos y lentes y dañó los sellos de los trajes en Apolo.",
+          "Degrada paneles solares, radiadores y sellos; aumenta el tiempo de mantenimiento de la tripulación."
+        ],
+        "game_use": "Base para la fase 4 (mantenimiento): polvo que baja el rendimiento de los paneles y hay que limpiar. Sin cifras."
+      },
       "zones": {
         "_note": "Valores por zona. radiation_factor multiplica surface_radiation_dose (candidata: LRO CRaTER). La temperatura sale de temperature_model. Falta fuente para la iluminación del polo sur (candidata: LRO LOLA).",
         "south_pole": {
           "name_es": "Polo sur",
           "difficulty_es": "Normal",
-          "summary_es": "Hielo de agua en los cráteres cercanos. El Sol pasa bajo, rozando el horizonte.",
+          "summary_es": "Hielo de agua en los cráteres cercanos. El Sol gira rasante sobre el horizonte: ~200 días de luz por ~4 de oscuridad.",
           "latitude_deg": {
             "value": -85,
             "status": "decided",
@@ -125,6 +207,11 @@
             "value": true,
             "status": "decided",
             "note": "Hielo en cráteres polares en sombra (evidencia: LCROSS). Decisión de diseño: solo el polo tiene extractor de hielo."
+          },
+          "continuous_light": {
+            "value": true,
+            "status": "decided",
+            "note": "Luz casi continua para los paneles, salvo un eclipse de polar_eclipse_days (Kessler et al. 2022)."
           }
         },
         "shadowed_crater": {
@@ -151,6 +238,11 @@
             "status": "decided",
             "note": "Las regiones en sombra permanente son trampas frías para el hielo (evidencia: LCROSS impactó en Cabeus, una de ellas)."
           },
+          "continuous_light": {
+            "value": true,
+            "status": "decided",
+            "note": "El borde del cráter está en la región polar: los paneles tienen la misma luz casi continua que el polo sur."
+          },
           "permanent_shadow": {
             "value": true,
             "status": "decided",
@@ -171,7 +263,7 @@
         "equator": {
           "name_es": "Ecuador",
           "difficulty_es": "Hardcore",
-          "summary_es": "Sin hielo: el agua se trae y se recicla. A largo plazo no alcanza.",
+          "summary_es": "Sin hielo: el agua se trae y se recicla, y a largo plazo no alcanza. ~14 días de luz y ~14 de noche.",
           "latitude_deg": {
             "value": 0,
             "status": "decided"
@@ -273,6 +365,84 @@
       "titanium": 120
     },
     "base_battery_capacity": 150,
+    "polar_eclipse_start_day": 14,
+    "work_hours": {
+      "_note": "Horas terrestres que el astronauta se queda trabajando en cada tarea (1 hora terrestre ≈ 2 s de juego a velocidad ×1). Base en fuentes: una caminata (EVA) dura como máximo 8 h (Burke et al. 2022, https://ntrs.nasa.gov/citations/20220013669, assumption 4); reparar o reemplazar un equipo debe tomar 3 h o menos (HIDH Rev1, sección 9.3.5, pág. 'Efficiency'); atender experimentos toma hasta 80 min al día (BVAD Rev2, Tabla 3-28, nota 69). Los valores que no salen directo de esas cifras son estimaciones nuestras (mock).",
+      "unpack_ship": 16,
+      "unpack_supply": 8,
+      "build": 8,
+      "build_lab": 16,
+      "build_shelter": 16,
+      "operate": 1,
+      "maintain": 2,
+      "repair": 3,
+      "sources_es": {
+        "unpack_ship": "Mock: 2 caminatas de 8 h (la nave de llegada es grande).",
+        "unpack_supply": "Mock: 1 caminata de 8 h (nave más pequeña).",
+        "build": "Mock: 1 caminata de 8 h por estación.",
+        "build_lab": "Mock: 2 caminatas de 8 h (equipar un laboratorio).",
+        "build_shelter": "Mock: 2 caminatas de 8 h (excavar el regolito).",
+        "operate": "Basado en BVAD: hasta 80 min al día para atender experimentos; redondeado a 1 h por iniciar o recoger una tanda.",
+        "maintain": "Mock: menos que el tope de 3 h del HIDH para una reparación.",
+        "repair": "HIDH 9.3.5: una reparación debe tomar 3 h o menos."
+      }
+    },
+    "events": {
+      "_note": "Probabilidades decididas por el equipo (2026-11-15). Las consecuencias marcadas como mock son estimaciones nuestras.",
+      "station_failure_per_week": 0.1,
+      "station_failure_extra_per_week_unmaintained": 0.1,
+      "station_failure_max_per_week": 0.9,
+      "injury_per_task": 0.02,
+      "injury_hours": 2,
+      "injury_slowdown": 2,
+      "human_error_base": 0.01,
+      "human_error_bar_threshold": 50,
+      "human_error_extra_per_bar": 0.1,
+      "solar_storm_per_day": 0.01,
+      "solar_storm_warning_hours": 8,
+      "solar_storm_peak_hours": 12,
+      "solar_storm_hull_survival": 0.3,
+      "meteor_per_year": 0.04,
+      "shelter": {
+        "name_es": "Refugio contra tormentas",
+        "description_es": "Excavado en el regolito. Protege de las tormentas solares, como el Lunar Safe Haven que estudia la NASA.",
+        "cost": { "titanium": 5, "energy": 20 }
+      },
+      "notes_es": {
+        "station_failure": "10 % por semana por estación si se le dio mantenimiento en los últimos 7 días; +10 % por cada semana sin mantenimiento (máx. 90 %). Se reparte por día.",
+        "injury": "2 % por trabajo terminado. Lesionado: camina a la mitad de velocidad y trabaja al doble de tiempo durante injury_hours horas lunares (mock).",
+        "human_error": "1 % al iniciar una tanda; +10 % por cada barra del astronauta en 0, proporcional bajo 50 %. Si ocurre, se pierden los insumos.",
+        "solar_storm": "1 % por día. Aviso de solar_storm_warning_hours horas terrestres (mock; Kessler et al. 2022: las tormentas llegan con poco aviso). En el pico: en el refugio sobrevive siempre, en el casco 30 %, afuera muere. Salir durante el pico es morir.",
+        "meteor": "Regla del juego: 4 % por año, repartido por día. Si cae, el astronauta muere."
+      }
+    },
+    "hull_radiation_factor": {
+      "value": 0.5,
+      "note": "Fracción de la dosis de la superficie que llega dentro del casco de la nave (cerámica). Sin fuente: valor de juego. Afuera el astronauta recibe la dosis completa medida por Chang'E 4."
+    },
+    "resupply": {
+      "_note": "Decisión del equipo (2026-11-15): cada 20 días llega una nave de suministros, más pequeña que la de llegada (no lleva a nadie). Trae minerales, sustrato y semillas no híbridas, y se desarma para sacar titanio. El intervalo está decidido; las cantidades son valores de juego.",
+      "interval_days": 20,
+      "contents": {
+        "minerals": 15,
+        "substrate": 10,
+        "seeds": 5,
+        "titanium": 40
+      }
+    },
+    "victory": {
+      "_note": "Qué cuenta como 'todo en buen estado' el día 30 (valores de prueba): todas las estaciones de las fases 2 y 3 construidas, cada barra del astronauta en este mínimo o más, y reservas de oxígeno, agua y comida para al menos estas horas.",
+      "crew_bar_min": 60,
+      "reserve_hours_min": 12,
+      "lab": {
+        "name_es": "Laboratorio de investigación",
+        "description_es": "El laboratorio del hábitat de Artemis. Construirlo cumple la misión.",
+        "cost": {
+          "titanium": 10,
+          "energy": 40
+        }
+      }
+    },
     "crew": {
       "oxygen_bar_drop_per_hour": 60,
       "water_bar_drop_per_hour": 6,

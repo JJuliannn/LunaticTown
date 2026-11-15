@@ -45,6 +45,20 @@ export function crewNeedsPerHour(config: ScenarioConfig, aliveCount: number): Re
   };
 }
 
+/** Lunar hours each base stock lasts at the current consumption rate (Infinity when nobody consumes). */
+export function reserveHours(
+  resources: Resources,
+  config: ScenarioConfig,
+  aliveCount: number,
+): Record<'oxygen' | 'water' | 'food', number> {
+  const needs = crewNeedsPerHour(config, aliveCount);
+  const hours = (need: 'oxygen' | 'water' | 'food') => {
+    const stock = NEED_SOURCES[need].reduce((sum, id) => sum + resources[id], 0);
+    return needs[need] > 0 ? stock / needs[need] : Infinity;
+  };
+  return { oxygen: hours('oxygen'), water: hours('water'), food: hours('food') };
+}
+
 export function runCrew(resources: Resources, crew: Astronaut[], config: ScenarioConfig, dtHours: number): CrewResult {
   const next = { ...resources };
   const rules = config.crewRules;

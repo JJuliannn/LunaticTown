@@ -1,5 +1,9 @@
 import { runCrew } from './crew';
+import { panelSunlight, radiationPerHour } from './environment';
+import { onNewDay, runStorm } from './events';
 import { runStations } from './processes';
+import { missionDay } from './time';
+import { runWork } from './work';
 import { LUNAR_HOURS_PER_CYCLE, localHourOf, sunAt } from './sun';
 import type { GameState, ScenarioConfig } from './types';
 
@@ -23,17 +27,27 @@ function stepHours(state: GameState, config: ScenarioConfig, dtHours: number): G
   const zone = config.zones[state.zoneId];
   const sun = sunAt(localHourOf(state, config.time), zone.latitudeDeg.value);
 
-  const stations = runStations(state, config, sun, dtHours);
+  const dayBefore = Math.floor(missionDay(state, config));
+
+  const stations = runStations(state, config, panelSunlight(state, config, sun), dtHours);
   const crew = runCrew(state.resources, state.crew, config, dtHours);
+  const dose = radiationPerHour(config, state.location !== 'outside') * dtHours;
+  const irradiated = crew.crew.map((a) => (a.alive ? { ...a, radiationDose: a.radiationDose + dose } : a));
 
   const anyoneAlive = crew.crew.some((a) => a.alive);
-  return {
+  let next: GameState = {
     ...state,
     elapsedLunarHours: state.elapsedLunarHours + dtHours,
     resources: crew.resources,
     stations,
-    crew: crew.crew,
+    crew: irradiated,
     status: anyoneAlive ? 'playing' : 'lost',
     lostReasonEs: anyoneAlive ? null : `El astronauta murió por ${crew.deathCauseEs ?? 'causas desconocidas'}.`,
   };
+  if (next.status !== 'playing') return next;
+
+  next = runWork(next, config, dtHours);
+  next = runStorm(next, config, dtHours);
+  if (next.status === 'playing' && Math.floor(missionDay(next, config)) > dayBefore) next = onNewDay(next, config);
+  return next;
 }

@@ -1,6 +1,7 @@
 // Player actions and mission phases. Pure functions.
 // Every action happens at a place: the UI only calls these when the astronaut is standing there.
 
+import { missionDay } from './time';
 import {
   BUILDING_IDS,
   type BuildingId,
@@ -96,8 +97,9 @@ export function build(state: GameState, config: ScenarioConfig, id: BuildingId):
   if (blocker) return { state, ok: false, messageEs: `${blocker.textEs}.` };
   const resources = { ...state.resources };
   for (const [res, amount] of amounts(def.cost)) resources[res] -= amount;
+  const day = missionDay(state, config);
   return {
-    state: withStation(state, id, { ...state.stations[id], built: true }, resources),
+    state: withStation(state, id, { ...state.stations[id], built: true, lastMaintainedDay: day }, resources),
     ok: true,
     messageEs: `Construido: ${def.nameEs}.`,
   };
@@ -118,6 +120,7 @@ export function operate(state: GameState, config: ScenarioConfig, id: BuildingId
   const def = config.buildings[id];
   const station = state.stations[id];
   if (!station.built) return { state, ok: false, messageEs: 'Primero hay que construirlo.' };
+  if (station.broken) return { state, ok: false, messageEs: `${def.nameEs} está averiada: repárala.` };
   const resources = { ...state.resources };
 
   if (def.kind === 'collector' && def.produces) {

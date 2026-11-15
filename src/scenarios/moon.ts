@@ -10,7 +10,8 @@ import {
   type ZoneConfig,
   type ZoneId,
 } from '../sim/types';
-import { isConfirmed, readNumber, type RawParam } from './params';
+import { LUNAR_HOURS_PER_CYCLE } from '../sim/sun';
+import { hasUsableValue, isConfirmed, readNumber, type RawParam } from './params';
 
 function buildZone(id: ZoneId): ZoneConfig {
   // Zones differ in which optional fields they have, so read them through a loose shape.
@@ -21,6 +22,7 @@ function buildZone(id: ZoneId): ZoneConfig {
     latitude_deg: RawParam;
     radiation_factor: RawParam;
     has_ice: { value: boolean };
+    continuous_light?: { value: boolean };
     permanent_shadow?: { value: boolean };
     shadow_floor_kelvin?: RawParam;
   };
@@ -30,6 +32,7 @@ function buildZone(id: ZoneId): ZoneConfig {
     latitudeDeg: readNumber(z.latitude_deg, `moon.zones.${id}.latitude_deg`),
     radiationFactor: readNumber(z.radiation_factor, `moon.zones.${id}.radiation_factor`),
     hasIce: z.has_ice.value,
+    continuousLight: z.continuous_light?.value ?? false,
     permanentShadow: z.permanent_shadow?.value ?? false,
     shadowFloorKelvin: z.shadow_floor_kelvin
       ? readNumber(z.shadow_floor_kelvin, `moon.zones.${id}.shadow_floor_kelvin`)
@@ -91,10 +94,24 @@ function buildBuilding(id: BuildingId): BuildingDef {
 /** Zone order on the selection screen: from easiest to hardest. */
 export const ZONE_IDS: ZoneId[] = ['south_pole', 'shadowed_crater', 'equator'];
 
+/**
+ * The hydroponics batch lasts the BVAD crop cycle with transplanting from a seedling nursery,
+ * converted from Earth days to lunar hours. The rest of the batch (inputs, outputs) is playtest balance.
+ */
+function withCropCycle(buildings: Record<BuildingId, BuildingDef>, cycleDays: number): Record<BuildingId, BuildingDef> {
+  const crops = params.science.moon.crops;
+  const hydro = buildings.hydroponics;
+  if (!hasUsableValue(crops) || !hydro.job) return buildings;
+  const hours = (crops.value.growth_days_with_transplanting * LUNAR_HOURS_PER_CYCLE) / cycleDays;
+  return { ...buildings, hydroponics: { ...hydro, job: { ...hydro.job, hours: Math.round(hours * 10) / 10 } } };
+}
+
 export function buildMoonScenario(): ScenarioConfig {
   const s = params.science;
   const d = params.design;
   const g = params.game_balance;
+  const cycle = readNumber(s.moon.day_night_cycle_length, 'moon.day_night_cycle_length');
+  const buildings = Object.fromEntries(BUILDING_IDS.map((id) => [id, buildBuilding(id)])) as Record<BuildingId, BuildingDef>;
   return {
     id: 'moon',
     crewSize: readNumber(d.crew_size, 'crew_size').value,
@@ -103,14 +120,14 @@ export function buildMoonScenario(): ScenarioConfig {
       startLocalHour: readNumber(d.start_local_hour, 'start_local_hour').value,
     },
     temperature: buildTemperatureModel(),
-    dayNightCycleLengthDays: readNumber(s.moon.day_night_cycle_length, 'moon.day_night_cycle_length'),
+    dayNightCycleLengthDays: cycle,
     surfaceRadiationDose: readNumber(s.moon.surface_radiation_dose, 'moon.surface_radiation_dose'),
     oxygenPerCrewPerDay: readNumber(s.oxygen_per_crew_per_day, 'oxygen_per_crew_per_day'),
     waterPerCrewPerDay: readNumber(s.water_per_crew_per_day, 'water_per_crew_per_day'),
     foodPerCrewPerDay: readNumber(s.food_per_crew_per_day, 'food_per_crew_per_day'),
     radiationLimitCrew: readNumber(s.radiation_limit_crew, 'radiation_limit_crew'),
     zones: Object.fromEntries(ZONE_IDS.map((id) => [id, buildZone(id)])) as Record<ZoneId, ZoneConfig>,
-    buildings: Object.fromEntries(BUILDING_IDS.map((id) => [id, buildBuilding(id)])) as Record<BuildingId, BuildingDef>,
+    buildings: withCropCycle(buildings, cycle.value),
     startResources: g.start_resources,
     shipSalvage: g.ship_salvage,
     baseBatteryCapacity: g.base_battery_capacity,
@@ -120,6 +137,47 @@ export function buildMoonScenario(): ScenarioConfig {
       foodBarDropPerHour: g.crew.food_bar_drop_per_hour,
       barRecoverPerHour: g.crew.bar_recover_per_hour,
       waterToWasteFraction: g.crew.water_to_waste_fraction,
+    },
+    victory: {
+      missionDays: readNumber(d.mission_days, 'mission_days').value,
+      minCrewBar: g.victory.crew_bar_min,
+      minReserveHours: g.victory.reserve_hours_min,
+      lab: { nameEs: g.victory.lab.name_es, descriptionEs: g.victory.lab.description_es, cost: g.victory.lab.cost },
+    },
+    polarEclipseDays: readNumber(s.moon.polar_eclipse_days, 'moon.polar_eclipse_days'),
+    polarEclipseStartDay: g.polar_eclipse_start_day,
+    hullRadiationFactor: g.hull_radiation_factor.value,
+    resupply: { intervalDays: g.resupply.interval_days, contents: g.resupply.contents },
+    workHours: {
+      unpack_ship: g.work_hours.unpack_ship,
+      unpack_supply: g.work_hours.unpack_supply,
+      build: g.work_hours.build,
+      build_lab: g.work_hours.build_lab,
+      build_shelter: g.work_hours.build_shelter,
+      operate: g.work_hours.operate,
+      maintain: g.work_hours.maintain,
+      repair: g.work_hours.repair,
+    },
+    events: {
+      stationFailurePerWeek: g.events.station_failure_per_week,
+      stationFailureExtraPerWeekUnmaintained: g.events.station_failure_extra_per_week_unmaintained,
+      stationFailureMaxPerWeek: g.events.station_failure_max_per_week,
+      injuryPerTask: g.events.injury_per_task,
+      injuryHours: g.events.injury_hours,
+      injurySlowdown: g.events.injury_slowdown,
+      humanErrorBase: g.events.human_error_base,
+      humanErrorBarThreshold: g.events.human_error_bar_threshold,
+      humanErrorExtraPerBar: g.events.human_error_extra_per_bar,
+      solarStormPerDay: g.events.solar_storm_per_day,
+      solarStormWarningHours: g.events.solar_storm_warning_hours,
+      solarStormPeakHours: g.events.solar_storm_peak_hours,
+      solarStormHullSurvival: g.events.solar_storm_hull_survival,
+      meteorPerYear: g.events.meteor_per_year,
+      shelter: {
+        nameEs: g.events.shelter.name_es,
+        descriptionEs: g.events.shelter.description_es,
+        cost: g.events.shelter.cost,
+      },
     },
   };
 }

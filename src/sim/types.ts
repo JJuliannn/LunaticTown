@@ -15,6 +15,8 @@ export interface ZoneConfig {
   radiationFactor: ParamValue;
   /** Whether the ice extractor can work here. */
   hasIce: boolean;
+  /** Polar light: panels get Sun all the time except one eclipse per mission. Otherwise 12 h day / 12 h night. */
+  continuousLight: boolean;
   /** The base sits where sunlight never reaches (floor of a polar crater). Panels must go on the rim. */
   permanentShadow: boolean;
   /** Ground temperature in permanent shadow, constant all cycle. Null where the Sun model applies. */
@@ -121,6 +123,17 @@ export interface CrewRules {
   waterToWasteFraction: number;
 }
 
+/** How the mission is won: reach the last mission day in good shape, then build the research lab. */
+export interface VictoryRules {
+  /** Earth days the mission lasts before the lab can be built. */
+  missionDays: number;
+  /** Each astronaut bar (0-100) must be at least this. */
+  minCrewBar: number;
+  /** Base stocks of oxygen, water and food must last at least this many lunar hours. */
+  minReserveHours: number;
+  lab: { nameEs: string; descriptionEs: string; cost: ResourceAmounts };
+}
+
 export interface ScenarioConfig {
   id: 'moon';
   crewSize: number;
@@ -141,6 +154,76 @@ export interface ScenarioConfig {
   /** Most energy the base can hold. */
   baseBatteryCapacity: number;
   crewRules: CrewRules;
+  victory: VictoryRules;
+  /** Earth days of darkness in continuous-light zones, and the mission day it starts. */
+  polarEclipseDays: ParamValue;
+  polarEclipseStartDay: number;
+  /** Fraction of the surface dose that reaches inside the hull. */
+  hullRadiationFactor: number;
+  /** A smaller supply ship lands every intervalDays; dismantling it gives the contents. */
+  resupply: { intervalDays: number; contents: ResourceAmounts };
+  /** Earth hours each kind of task keeps the astronaut working. */
+  workHours: Record<WorkKind, number>;
+  events: EventRules;
+}
+
+export type WorkKind =
+  | 'unpack_ship'
+  | 'unpack_supply'
+  | 'build'
+  | 'build_lab'
+  | 'build_shelter'
+  | 'operate'
+  | 'maintain'
+  | 'repair';
+
+/** What the astronaut does when a task finishes. */
+export type WorkAction =
+  | { type: 'unpackShip' }
+  | { type: 'unpackSupply' }
+  | { type: 'build'; id: BuildingId }
+  | { type: 'operate'; id: BuildingId }
+  | { type: 'buildLab' }
+  | { type: 'buildShelter' }
+  | { type: 'maintain'; id: BuildingId }
+  | { type: 'repair'; id: BuildingId };
+
+export interface Work {
+  action: WorkAction;
+  labelEs: string;
+  /** Lunar hours. */
+  hoursLeft: number;
+  totalHours: number;
+}
+
+export interface EventRules {
+  stationFailurePerWeek: number;
+  stationFailureExtraPerWeekUnmaintained: number;
+  stationFailureMaxPerWeek: number;
+  injuryPerTask: number;
+  /** Lunar hours an injury lasts. */
+  injuryHours: number;
+  /** Work takes this many times longer and walking is this many times slower while injured. */
+  injurySlowdown: number;
+  humanErrorBase: number;
+  humanErrorBarThreshold: number;
+  humanErrorExtraPerBar: number;
+  solarStormPerDay: number;
+  /** Earth hours. */
+  solarStormWarningHours: number;
+  solarStormPeakHours: number;
+  solarStormHullSurvival: number;
+  meteorPerYear: number;
+  shelter: { nameEs: string; descriptionEs: string; cost: ResourceAmounts };
+}
+
+/** Where the astronaut is, for radiation and solar storms. */
+export type Location = 'outside' | 'hull' | 'shelter';
+
+export interface SolarStorm {
+  phase: 'warning' | 'peak';
+  /** Lunar hours left in this phase. */
+  hoursLeft: number;
 }
 
 export interface Astronaut {
@@ -150,6 +233,7 @@ export interface Astronaut {
   oxygen: number;
   water: number;
   food: number;
+  /** Accumulated dose equivalent this mission, mSv. */
   radiationDose: number;
   morale: number;
 }
@@ -162,9 +246,13 @@ export interface StationState {
   ready: boolean;
   /** Collector: amount waiting to be collected. */
   stored: number;
+  /** Broken: does nothing until repaired. */
+  broken: boolean;
+  /** Mission day of the last maintenance (or of construction). */
+  lastMaintainedDay: number;
 }
 
-export type MissionStatus = 'playing' | 'lost';
+export type MissionStatus = 'playing' | 'lost' | 'won';
 
 export interface GameState {
   zoneId: ZoneId;
@@ -175,6 +263,20 @@ export interface GameState {
   lostReasonEs: string | null;
   /** False until the player dismantles the ship (phase 1). */
   shipUnpacked: boolean;
+  /** Supply ships already dismantled. */
+  resuppliesUnpacked: number;
+  /** Where the astronaut is. Set by the UI from where the player stands. */
+  location: Location;
+  shelterBuilt: boolean;
+  /** Task in progress: the astronaut stands still until it ends. */
+  work: Work | null;
+  /** Lunar hours of injury left (0 = healthy). */
+  injuryHoursLeft: number;
+  storm: SolarStorm | null;
+  /** Seed of the deterministic random generator (events stay pure and reproducible). */
+  rngSeed: number;
+  /** Things that happened, in Spanish, oldest first. The UI shows the new ones. */
+  log: string[];
   resources: Resources;
   stations: Record<BuildingId, StationState>;
   crew: Astronaut[];

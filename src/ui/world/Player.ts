@@ -40,20 +40,26 @@ export class Player {
     return this.body.body as Phaser.Physics.Arcade.Body;
   }
 
-  update(): void {
+  /**
+   * @param opts.frozen working: the astronaut stands still.
+   * @param opts.speedFactor below 1 when injured.
+   * @returns true if a movement key is pressed (used to cancel work).
+   */
+  update(opts: { frozen?: boolean; speedFactor?: number } = {}): boolean {
     const k = this.keys;
     const left = k.left.isDown || k.a.isDown;
     const right = k.right.isDown || k.d.isDown;
     const jump = k.up.isDown || k.w.isDown || k.space.isDown;
+    const moving = left || right || jump;
 
-    if (left === right) {
+    if (opts.frozen || left === right) {
       this.arcade.setVelocityX(0);
     } else {
       this.facing = left ? -1 : 1;
-      this.arcade.setVelocityX(PLAYER.speed * this.facing);
+      this.arcade.setVelocityX(PLAYER.speed * (opts.speedFactor ?? 1) * this.facing);
     }
 
-    if (jump && this.arcade.blocked.down) {
+    if (!opts.frozen && jump && this.arcade.blocked.down) {
       this.arcade.setVelocityY(-PLAYER.jumpVelocity);
     }
 
@@ -61,5 +67,6 @@ export class Player {
       this.body.x + this.facing * (PLAYER.width / 2 - 5),
       this.body.y - PLAYER.height / 2 + 10,
     );
+    return moving;
   }
 }

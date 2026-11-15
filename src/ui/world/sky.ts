@@ -6,6 +6,8 @@ import { GAME_HEIGHT, GAME_WIDTH } from '../theme';
 const HORIZON_Y = 320;
 const ARC_HEIGHT = 250;
 const NIGHT_ALPHA = 0.6;
+/** Screen height of the polar Sun above the horizon line (it stays low). */
+const POLAR_SUN_HEIGHT = 30;
 
 /**
  * Sun disk that crosses the screen with the lunar local hour, plus a dark veil
@@ -26,16 +28,27 @@ export class Sky {
       .setDepth(50);
   }
 
-  /** @param shaded the astronaut is somewhere the Sun never reaches (crater floor): always dark, no Sun disk. */
-  update(sun: SunState, shaded = false): void {
-    // Hour 6 = left edge, 12 = center, 18 = right edge. Height follows the Sun's real elevation,
-    // so at the pole it only skims the horizon.
+  /**
+   * @param opts.shaded the astronaut is somewhere the Sun never reaches (crater floor): dark, no Sun disk.
+   * @param opts.polar continuous polar light: the Sun circles just above the horizon all cycle.
+   * @param opts.eclipse polar eclipse under way: no Sun.
+   */
+  update(sun: SunState, opts: { shaded?: boolean; polar?: boolean; eclipse?: boolean } = {}): void {
+    if (opts.polar) {
+      // The Sun goes all the way around the sky once per cycle, skimming the horizon.
+      const x = (((sun.localHour + 6) % 24) / 24) * GAME_WIDTH;
+      const visible = !opts.shaded && !opts.eclipse;
+      this.sun.setPosition(x, HORIZON_Y - POLAR_SUN_HEIGHT).setVisible(visible);
+      this.veil.setAlpha(visible ? 0 : NIGHT_ALPHA);
+      return;
+    }
+    // Hour 6 = left edge, 12 = center, 18 = right edge. Height follows the Sun's elevation.
     const x = ((sun.localHour - 6) / 12) * GAME_WIDTH;
     const y = HORIZON_Y - Math.max(0, sun.cosIncidence) * ARC_HEIGHT;
-    this.sun.setPosition(x, y).setVisible(sun.isDay && !shaded);
+    this.sun.setPosition(x, y).setVisible(sun.isDay && !opts.shaded);
 
     // Fade in/out over roughly the half hour around sunrise and sunset.
-    const light = shaded ? 0 : Phaser.Math.Clamp(sun.cosIncidence / 0.12 + 0.5, 0, 1);
+    const light = opts.shaded ? 0 : Phaser.Math.Clamp(sun.cosIncidence / 0.12 + 0.5, 0, 1);
     this.veil.setAlpha(NIGHT_ALPHA * (1 - light));
   }
 }

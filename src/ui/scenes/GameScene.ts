@@ -1,18 +1,23 @@
 import Phaser from 'phaser';
 import { buildMoonScenario } from '../../scenarios/moon';
-import { build, operate, unpackShip, type ActionResult } from '../../sim/actions';
+import { inEclipse } from '../../sim/environment';
+import { suppliesLanded } from '../../sim/resupply';
 import { createInitialState } from '../../sim/state';
 import { step } from '../../sim/step';
-import { LUNAR_HOURS_PER_CYCLE, localHourOf, sunAt } from '../../sim/sun';
+import { localHourOf, sunAt } from '../../sim/sun';
 import { zoneSurfaceKelvin, zoneTemperatureVerified } from '../../sim/temperature';
 import { generateTerrain, type CraterOptions } from '../../sim/terrain';
-import type { BuildingId, GameState, ScenarioConfig, ZoneConfig, ZoneId } from '../../sim/types';
+import type { BuildingId, GameState, Location, ScenarioConfig, WorkAction, ZoneConfig, ZoneId } from '../../sim/types';
+import { missionDay } from '../../sim/victory';
+import { beginWork, cancelWork } from '../../sim/work';
 import { Hud } from '../hud';
 import { COLORS, FONT, GAME_HEIGHT, GAME_WIDTH, TEXT } from '../theme';
 import { PLAYER, TILE, WORLD_COLUMNS } from '../world/constants';
 import { Player } from '../world/Player';
 import { Sky } from '../world/sky';
+import { ShelterSite } from '../world/shelterSite';
 import { PAD_RADIUS_TILES, Structures } from '../world/structures';
+import { WorkIndicator } from '../world/workIndicator';
 import { buildTerrain, surfaceY } from '../world/terrain';
 
 // World layout per zone. Game design values, not real topography (LOLA later).
@@ -30,7 +35,7 @@ const ZONE_WORLD: Record<ZoneId, ZoneWorld> = {
     seed: 3303,
     amplitude: 4,
     crater: { depth: 9, wallWidth: 9, rimWidth: 10 },
-    slots: { solar_panels: -32 },
+    slots: { solar_panels: -39 },
   },
   equator: { seed: 2202, amplitude: 3 },
 };
@@ -53,8 +58,14 @@ export class GameScene extends Phaser.Scene {
   private hud!: Hud;
   private sky!: Sky;
   private structures!: Structures;
+  private shelter!: ShelterSite;
+  private workIndicator!: WorkIndicator;
   private speedIndex = 0;
   private gameOverShown = false;
+  /** Entries of state.log already shown. */
+  private logShown = 0;
+  /** A movement key was down last frame (a new press cancels work). */
+  private wasMoving = false;
   /** Top of the ground under the base. */
   private floorY = 0;
 
@@ -68,6 +79,8 @@ export class GameScene extends Phaser.Scene {
     this.state = createInitialState(this.scenario, data.zoneId);
     this.speedIndex = 0;
     this.gameOverShown = false;
+    this.logShown = 0;
+    this.wasMoving = false;
   }
 
   create(): void {
@@ -92,7 +105,10 @@ export class GameScene extends Phaser.Scene {
     const centerX = worldWidth / 2;
     const groundY = surfaceY(heights, worldHeight, centerX);
     this.floorY = groundY;
-    this.structures = new Structures(this, centerX, (x) => surfaceY(heights, worldHeight, x), layout.slots);
+    const groundYAt = (x: number) => surfaceY(heights, worldHeight, x);
+    this.structures = new Structures(this, centerX, groundYAt, layout.slots);
+    this.shelter = new ShelterSite(this, centerX, groundYAt);
+    this.workIndicator = new WorkIndicator(this);
 
     this.player = new Player(this, centerX, groundY - PLAYER.height);
     this.physics.add.collider(this.player.body, ground);
@@ -106,28 +122,54 @@ export class GameScene extends Phaser.Scene {
     const kb = this.input.keyboard!;
     kb.on('keydown-ESC', () => this.scene.start('Menu'));
     kb.on('keydown-E', () => this.interact());
+    kb.on('keydown-R', () => this.maintain());
     kb.on('keydown-T', () => (this.speedIndex = (this.speedIndex + 1) % SPEEDS.length));
   }
 
   update(_time: number, deltaMs: number): void {
-    this.player.update();
+    const injured = this.state.injuryHoursLeft > 0;
+    const moving = this.player.update({
+      frozen: this.state.work !== null,
+      speedFactor: injured ? 1 / this.scenario.events.injurySlowdown : 1,
+    });
+    // A new movement key press cancels the task in progress (e.g. to run from a solar storm).
+    if (moving && !this.wasMoving && this.state.work) this.state = cancelWork(this.state);
+    this.wasMoving = moving;
+
+    const location = this.locationOf(this.player.body.x);
+    if (location !== this.state.location) this.state = { ...this.state, location };
 
     const speed = SPEEDS[this.speedIndex];
+    const before = this.state;
     this.state = step(this.state, this.scenario, (deltaMs / 1000) * speed);
+    this.announceChanges(before, this.state);
 
     const localHour = localHourOf(this.state, this.scenario.time);
     const latitude = this.zone.latitudeDeg.value;
     const sun = sunAt(localHour, latitude);
+    const eclipse = inEclipse(this.state, this.scenario);
     // In a shadowed crater only the rim sees the Sun: dark while the astronaut is down on the floor.
     const playerFeetY = this.player.body.y + PLAYER.height;
-    this.sky.update(sun, this.zone.permanentShadow && playerFeetY > this.floorY - SHADE_CLEARANCE_PX);
+    const shaded = this.zone.permanentShadow && playerFeetY > this.floorY - SHADE_CLEARANCE_PX;
+    this.sky.update(sun, { shaded, polar: this.zone.continuousLight, eclipse });
     this.structures.update(this.state, this.scenario);
+    this.shelter.update(this.state, this.scenario);
+    this.workIndicator.update(this.state.work, this.player.body.x, this.player.body.y);
     this.hud.updateBase(this.state, this.scenario, deltaMs);
+    this.hud.setAlerts(this.alertsEs());
+    this.showNewLog();
+    const lightEs = this.zone.continuousLight
+      ? eclipse
+        ? 'eclipse polar'
+        : 'Sol rasante'
+      : sun.isDay
+        ? 'de día'
+        : 'de noche';
     this.hud.updateEnvironment({
       localHour,
-      isDay: sun.isDay,
-      cycleNumber:
-        Math.floor((this.scenario.time.startLocalHour + this.state.elapsedLunarHours) / LUNAR_HOURS_PER_CYCLE) + 1,
+      lightEs,
+      missionDay: missionDay(this.state, this.scenario),
+      missionDays: this.scenario.victory.missionDays,
       surfaceKelvin: zoneSurfaceKelvin(this.scenario.temperature, this.zone, localHour),
       temperatureVerified: zoneTemperatureVerified(this.scenario.temperature, this.zone),
       temperatureNoteEs: this.zone.shadowFloorKelvin
@@ -136,30 +178,97 @@ export class GameScene extends Phaser.Scene {
       speed,
     });
 
-    const site = this.state.status === 'playing' ? this.structures.siteAt(this.player.body.x) : null;
-    this.hud.setPrompt(site ? this.structures.promptEs(site, this.state, this.scenario) : '');
+    this.hud.setPrompt(this.promptHere());
 
-    if (this.state.status === 'lost' && !this.gameOverShown) this.showGameOver();
+    if (this.state.status !== 'playing' && !this.gameOverShown) this.showGameOver();
   }
 
-  /** E key: do whatever makes sense at the site where the astronaut is standing. */
-  private interact(): void {
-    if (this.state.status !== 'playing') return;
-    const site = this.structures.siteAt(this.player.body.x);
-    if (!site) return;
+  private promptHere(): string {
+    if (this.state.status !== 'playing' || this.state.work) return '';
+    const x = this.player.body.x;
+    if (this.shelter.isAt(x)) return this.shelter.promptEs(this.state, this.scenario);
+    const site = this.structures.siteAt(x);
+    return site ? this.structures.promptEs(site, this.state, this.scenario) : '';
+  }
 
-    let result: ActionResult;
-    if (site.kind === 'ship') {
-      if (this.state.shipUnpacked) return;
-      result = unpackShip(this.state, this.scenario);
-    } else {
-      if (!this.state.shipUnpacked) return;
-      result = this.state.stations[site.id].built
-        ? operate(this.state, this.scenario, site.id)
-        : build(this.state, this.scenario, site.id);
+  /** Hull and dug shelter protect; anywhere else is outside. */
+  private locationOf(x: number): Location {
+    if (this.state.shelterBuilt && this.shelter.isAt(x)) return 'shelter';
+    return this.structures.siteAt(x)?.kind === 'ship' ? 'hull' : 'outside';
+  }
+
+  /** Persistent warnings for the HUD. */
+  private alertsEs(): string[] {
+    const lines: string[] = [];
+    const storm = this.state.storm;
+    if (storm) {
+      const hours = Math.max(1, Math.round(storm.hoursLeft * this.scenario.dayNightCycleLengthDays.value));
+      lines.push(
+        storm.phase === 'warning'
+          ? `⚠ TORMENTA SOLAR en ~${hours} h: ve al refugio${this.state.shelterBuilt ? '' : ' (no tienes: el casco da 30 %)'}`
+          : `⚠ TORMENTA SOLAR en curso (~${hours} h): no salgas`,
+      );
     }
+    if (this.state.injuryHoursLeft > 0) lines.push('Lesionado: caminas más lento y los trabajos tardan el doble');
+    return lines;
+  }
+
+  /** Shows messages the simulation logged since the last frame. */
+  private showNewLog(): void {
+    const fresh = this.state.log.slice(this.logShown);
+    this.logShown = this.state.log.length;
+    if (fresh.length > 0) this.hud.showMessage(fresh.join('\n'));
+  }
+
+  /** Messages for things that happen on their own: a supply ship lands, the polar eclipse starts or ends. */
+  private announceChanges(before: GameState, after: GameState): void {
+    if (suppliesLanded(after, this.scenario) > suppliesLanded(before, this.scenario)) {
+      this.hud.showMessage('Aterrizó una nave de suministros. Ve a la pista a desarmarla.');
+    }
+    const wasDark = inEclipse(before, this.scenario);
+    const isDark = inEclipse(after, this.scenario);
+    if (!wasDark && isDark) {
+      const days = this.scenario.polarEclipseDays.value;
+      this.hud.showMessage(`Eclipse polar: unos ${days} días sin Sol. Los paneles no cargan; usa la energía guardada.`);
+    } else if (wasDark && !isDark) {
+      this.hud.showMessage('Terminó el eclipse: los paneles vuelven a cargar.');
+    }
+  }
+
+  /** E key: start the task that makes sense where the astronaut stands. The effect comes when it ends. */
+  private interact(): void {
+    if (this.state.status !== 'playing' || this.state.work) return;
+    const action = this.actionHere();
+    if (!action) return;
+    this.startWork(action);
+  }
+
+  /** R key: preventive maintenance of the station here. */
+  private maintain(): void {
+    if (this.state.status !== 'playing' || this.state.work || !this.state.shipUnpacked) return;
+    const site = this.structures.siteAt(this.player.body.x);
+    if (site?.kind !== 'station' || !this.state.stations[site.id].built) return;
+    this.startWork({ type: 'maintain', id: site.id });
+  }
+
+  private startWork(action: WorkAction): void {
+    const result = beginWork(this.state, this.scenario, action);
     this.state = result.state;
     this.hud.showMessage(result.messageEs);
+  }
+
+  private actionHere(): WorkAction | null {
+    const x = this.player.body.x;
+    if (this.shelter.isAt(x)) return this.state.shipUnpacked && !this.state.shelterBuilt ? { type: 'buildShelter' } : null;
+    const site = this.structures.siteAt(x);
+    if (!site) return null;
+    if (site.kind === 'ship') return this.state.shipUnpacked ? null : { type: 'unpackShip' };
+    if (!this.state.shipUnpacked) return null;
+    if (site.kind === 'lab') return { type: 'buildLab' };
+    if (site.kind === 'supply') return { type: 'unpackSupply' };
+    const station = this.state.stations[site.id];
+    if (!station.built) return { type: 'build', id: site.id };
+    return station.broken ? { type: 'repair', id: site.id } : { type: 'operate', id: site.id };
   }
 
   private showGameOver(): void {
@@ -167,12 +276,20 @@ export class GameScene extends Phaser.Scene {
     this.hud.setPrompt('');
     const cx = GAME_WIDTH / 2;
     const cy = GAME_HEIGHT / 2;
-    const cycles = (this.state.elapsedLunarHours / LUNAR_HOURS_PER_CYCLE).toFixed(1);
+    const won = this.state.status === 'won';
+    const days = Math.floor(missionDay(this.state, this.scenario));
+    const color = won ? COLORS.accent : COLORS.warning;
+    const title = won ? '¡Misión cumplida!' : 'Misión fallida';
+    const body = won
+      ? `Sobreviviste los ${this.scenario.victory.missionDays} días de la misión de Artemis\ny construiste el ${this.scenario.victory.lab.nameEs.toLowerCase()}.`
+      : `${this.state.lostReasonEs ?? ''}\nSobrevivió ${days} días de ${this.scenario.victory.missionDays}.`;
     const objects = [
-      this.add.rectangle(cx, cy, 720, 220, COLORS.panel, 0.95).setStrokeStyle(2, COLORS.warning),
-      this.add.text(cx, cy - 60, 'Misión fallida', { fontFamily: FONT, fontSize: '40px', color: TEXT.warning }).setOrigin(0.5),
+      this.add.rectangle(cx, cy, 720, 220, COLORS.panel, 0.95).setStrokeStyle(2, color),
       this.add
-        .text(cx, cy + 5, `${this.state.lostReasonEs ?? ''}\nSobrevivió ${cycles} ciclos lunares.`, {
+        .text(cx, cy - 60, title, { fontFamily: FONT, fontSize: '40px', color: won ? TEXT.accent : TEXT.warning })
+        .setOrigin(0.5),
+      this.add
+        .text(cx, cy + 5, body, {
           fontFamily: FONT,
           fontSize: '20px',
           color: TEXT.primary,
