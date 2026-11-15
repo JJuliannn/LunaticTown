@@ -119,7 +119,8 @@ export class Hud {
         [
           '← → / A D: moverse · ↑ / W / Espacio: saltar',
           'E: construir, iniciar, recoger o reparar en el sitio donde estás',
-          'R: mantenimiento · T: velocidad · Esc: menú',
+          'R: mantenimiento · Enter: comunicador · T: velocidad',
+          'I: menú de pruebas · Esc: menú',
         ].join('\n'),
         { fontFamily: FONT, fontSize: '13px', color: TEXT.muted, align: 'right' },
       )
@@ -146,7 +147,8 @@ export class Hud {
       .setOrigin(1, 0)
       .setVisible(false);
     this.promptText = scene.add
-      .text(GAME_WIDTH / 2, GAME_HEIGHT - 24, '', {
+      // Above the communicator, which takes the bottom center.
+      .text(GAME_WIDTH / 2, GAME_HEIGHT - 124, '', {
         fontFamily: FONT,
         fontSize: '17px',
         color: TEXT.primary,

@@ -23,6 +23,7 @@ export function splitChance(p: number, periods: number): number {
   return 1 - Math.pow(1 - p, 1 / periods);
 }
 
-export function withLog(state: GameState, textEs: string): GameState {
-  return { ...state, log: [...state.log, textEs] };
+/** Adds a message. comms = true for important news that Mission Control relays on the communicator. */
+export function withLog(state: GameState, textEs: string, comms = false): GameState {
+  return { ...state, log: [...state.log, { textEs, comms }] };
 }

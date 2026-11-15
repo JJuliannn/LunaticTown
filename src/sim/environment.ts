@@ -20,7 +20,7 @@ function hoursPerEarthDay(config: ScenarioConfig): number {
 export function inEclipse(state: GameState, config: ScenarioConfig): boolean {
   if (!config.zones[state.zoneId].continuousLight) return false;
   const k = hoursPerEarthDay(config);
-  const start = config.polarEclipseStartDay * k;
+  const start = state.eclipseStartDay * k;
   const end = start + config.polarEclipseDays.value * k;
   return state.elapsedLunarHours >= start && state.elapsedLunarHours < end;
 }

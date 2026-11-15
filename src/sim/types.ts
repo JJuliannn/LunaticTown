@@ -217,6 +217,12 @@ export interface EventRules {
   shelter: { nameEs: string; descriptionEs: string; cost: ResourceAmounts };
 }
 
+/** A message from the simulation. `comms`: important, delivered by Mission Control on the communicator. */
+export interface LogEntry {
+  textEs: string;
+  comms: boolean;
+}
+
 /** Where the astronaut is, for radiation and solar storms. */
 export type Location = 'outside' | 'hull' | 'shelter';
 
@@ -275,8 +281,10 @@ export interface GameState {
   storm: SolarStorm | null;
   /** Seed of the deterministic random generator (events stay pure and reproducible). */
   rngSeed: number;
-  /** Things that happened, in Spanish, oldest first. The UI shows the new ones. */
-  log: string[];
+  /** Things that happened, oldest first. The UI shows the new ones. */
+  log: LogEntry[];
+  /** Mission day the polar eclipse starts (from config; the test menu can move it). */
+  eclipseStartDay: number;
   resources: Resources;
   stations: Record<BuildingId, StationState>;
   crew: Astronaut[];

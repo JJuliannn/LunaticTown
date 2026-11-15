@@ -129,16 +129,18 @@ export function runWork(state: GameState, config: ScenarioConfig, dtHours: numbe
   if (hoursLeft > 0) return { ...s, work: { ...s.work, hoursLeft } };
 
   const result = complete({ ...s, work: null }, config, s.work.action);
-  s = withLog(result.state, result.messageEs);
+  // Human error is important news; a normal result is just feedback.
+  s = withLog(result.state, result.messageEs, result.messageEs.startsWith('Error humano'));
   if (s.status !== 'playing') return s;
 
   const [hurt, next] = chance(s, config.events.injuryPerTask);
-  s = next;
-  if (hurt) {
-    s = withLog(
-      { ...s, injuryHoursLeft: config.events.injuryHours },
-      'Te lesionaste trabajando: por un tiempo caminas más lento y los trabajos tardan el doble.',
-    );
-  }
-  return s;
+  return hurt ? injure(next, config) : next;
+}
+
+export function injure(state: GameState, config: ScenarioConfig): GameState {
+  return withLog(
+    { ...state, injuryHoursLeft: config.events.injuryHours },
+    'Te lesionaste trabajando: por un tiempo caminas más lento y los trabajos tardan el doble.',
+    true,
+  );
 }

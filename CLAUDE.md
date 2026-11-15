@@ -64,7 +64,7 @@ Plazo: hackathon de 2 días. Equipo hispanohablante. La interfaz del juego va en
   - Fallas: 10 % por semana por estación, +10 % por cada semana sin mantenimiento (tecla R). Una estación averiada no funciona hasta repararla (E).
   - Error humano: 1 % al iniciar una tanda, más si las barras del astronauta bajan de 50 %. Se pierden los insumos.
   - Lesión: 2 % al terminar un trabajo. Lesionado: camina a la mitad y trabaja al doble de tiempo por 2 horas lunares (mock).
-  - Tormenta solar: 1 % por día, con aviso de 8 h. En el pico: en el refugio excavado sobrevive siempre, en el casco 30 %, afuera muere. Salir durante el pico es morir. El refugio es opcional y se construye a la izquierda de la pista.
+  - Tormenta solar: 1 % por día. Control de Misión la avisa 3 días antes por el comunicador (decisión del equipo). En el pico: en el refugio excavado sobrevive siempre, en el casco 30 %, afuera muere. Salir durante el pico es morir. El refugio es opcional y se construye a la izquierda de la pista.
   - Meteorito: 4 % por año (regla del juego). El mensaje muestra el dato real: 2024 YR4 tiene un 4,3 % de chocar con la Luna el 22 de diciembre de 2032, un evento único.
 - Derrota: el astronauta muere (oxígeno, agua o comida).
 - Victoria (decisión del equipo, 2026-11-15):
@@ -76,6 +76,12 @@ Plazo: hackathon de 2 días. Equipo hispanohablante. La interfaz del juego va en
 - El oxígeno se maneja con dos fuentes: tanques de reserva (finitos, seguridad) y producción (recurso a gestionar).
 - Ciclo cerrado de nutrientes: nitrógeno, bacterias, plantas, oxígeno.
 - Barras de salud por astronauta.
+- Comunicador (decisión del equipo, 2026-11-15): la radio de la nave con Control de Misión en la Tierra, abajo al centro.
+  - Da el tutorial paso a paso; cada paso se queda hasta que se cumple. Ver `src/ui/comms/tutorial.ts`.
+  - Avisa los eventos importantes (tormenta, fallas, lesión, error humano) y los hitos: cambio de fase, nave de suministros, eclipse, mitad de la misión y laboratorio disponible (`src/ui/comms/milestones.ts`).
+  - Los mensajes llegan con un "recibiendo señal" de 2,5 s, por el retraso de radio Tierra-Luna (Kessler 2022). Enter pasa al siguiente.
+  - En la simulación, `state.log` marca con `comms: true` lo que va al comunicador; lo demás sale arriba como mensaje corto.
+- Menú de pruebas (tecla I): fuerza los eventos generales (1 a 9) y X lo cierra. Los eventos están en `src/sim/debug.ts`; agregar uno es agregar una fila ahí.
 - Público: secundaria y universidad (decisión del equipo, 2026-11-15). El lenguaje no se infantiliza: términos técnicos con unidades reales (mSv, kWh, K), explicados en una frase cuando hace falta.
 - Se apoya en cosas ya existentes en vez de empezar de cero.
 - Orden de trabajo: concepto completo primero, base de datos al final para complementarlo.
@@ -155,7 +161,8 @@ assets/                archivos estáticos (logo.png, sprites, sonidos); Vite lo
 src/main.ts            arranque de Phaser
 src/sim/               lógica pura: step (avance), sun y temperature, processes (estaciones en el tiempo), crew (consumo y barras), actions (desarmar nave, construir, operar, fases), victory (día de misión y laboratorio), environment (luz de los paneles, eclipse polar, radiación), resupply (naves de suministros), work (tareas con duración), events y failures (eventos al azar), shelter (refugio), random (azar con semilla), time (conversiones de tiempo), terrain (incluye cráter)
 src/scenarios/         moon.ts arma la configuración desde params.json; params.ts elige value o playtest_value
-src/ui/                tema, widgets, HUD con barras (statBar.ts; incluye el aviso de qué hace E donde estás) y escenas (Menu, ZoneSelect, Game)
+src/ui/comms/          comunicador con la Tierra: panel, tutorial e hitos
+src/ui/                tema, widgets, menú de pruebas (debugMenu.ts), HUD con barras (statBar.ts; incluye el aviso de qué hace E donde estás) y escenas (Menu, ZoneSelect, Game)
 src/ui/world/          mundo lateral: jugador, terreno, cielo, estaciones y sus etiquetas, refugio (shelterSite), barra de trabajo (workIndicator), constantes de física (valores de juego)
 CLAUDE.md              este archivo
 ```

@@ -46,6 +46,7 @@ export function createInitialState(config: ScenarioConfig, zoneId: ZoneId, seed 
     storm: null,
     rngSeed: seed >>> 0,
     log: [],
+    eclipseStartDay: config.polarEclipseStartDay,
     resources: { ...config.startResources },
     stations: emptyStations(),
     crew: Array.from({ length: config.crewSize }, (_, i) => createAstronaut(i)),

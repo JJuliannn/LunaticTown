@@ -12,7 +12,10 @@ import type { GameState, ScenarioConfig } from './types';
 
 const DAYS_PER_YEAR = 365.25;
 
-function kill(state: GameState, reasonEs: string): GameState {
+export const METEOR_DEATH_ES =
+  'Un meteorito de unos 60 m cayó sobre la base. (Dato real: el asteroide 2024 YR4 tiene un 4,3 % de chocar con la Luna el 22 de diciembre de 2032.)';
+
+export function kill(state: GameState, reasonEs: string): GameState {
   return {
     ...state,
     status: 'lost',
@@ -29,25 +32,27 @@ export function onNewDay(state: GameState, config: ScenarioConfig): GameState {
 
   const [meteor, afterMeteor] = chance(s, splitChance(e.meteorPerYear, DAYS_PER_YEAR));
   s = afterMeteor;
-  if (meteor) {
-    return kill(
-      s,
-      'Un meteorito de unos 60 m cayó sobre la base. (Dato real: el asteroide 2024 YR4 tiene un 4,3 % de chocar con la Luna el 22 de diciembre de 2032.)',
-    );
-  }
+  if (meteor) return kill(s, METEOR_DEATH_ES);
 
   if (!s.storm) {
     const [storm, afterStorm] = chance(s, e.solarStormPerDay);
     s = afterStorm;
-    if (storm) {
-      s = { ...s, storm: { phase: 'warning', hoursLeft: earthHoursToLunar(config, e.solarStormWarningHours) } };
-      s = withLog(
-        s,
-        `¡Alerta de tormenta solar! Llega en unas ${e.solarStormWarningHours} h. Ve al refugio (en el casco solo hay 30 % de sobrevivir).`,
-      );
-    }
+    if (storm) s = startStorm(s, config);
   }
   return s;
+}
+
+/** Mission Control detects a solar storm: the warning period starts. */
+export function startStorm(state: GameState, config: ScenarioConfig): GameState {
+  const e = config.events;
+  const days = Math.round(e.solarStormWarningHours / 24);
+  const hull = Math.round(e.solarStormHullSurvival * 100);
+  const s: GameState = { ...state, storm: { phase: 'warning', hoursLeft: earthHoursToLunar(config, e.solarStormWarningHours) } };
+  return withLog(
+    s,
+    `Detectamos una eyección solar: la tormenta llega en unos ${days} días. Prepárate y estate en el refugio antes del pico (en el casco solo hay ${hull} % de sobrevivir).`,
+    true,
+  );
 }
 
 /** Advances a solar storm under way and applies its consequences. */
@@ -63,7 +68,7 @@ export function runStorm(state: GameState, config: ScenarioConfig, dtHours: numb
   const hoursLeft = storm.hoursLeft - dtHours;
   if (hoursLeft > 0) return { ...state, storm: { ...storm, hoursLeft } };
 
-  if (storm.phase === 'peak') return withLog({ ...state, storm: null }, 'Terminó la tormenta solar. Ya puedes salir.');
+  if (storm.phase === 'peak') return withLog({ ...state, storm: null }, 'Terminó la tormenta solar. Ya puedes salir.', true);
 
   // The peak arrives: where is the astronaut?
   let s: GameState = { ...state, storm: { phase: 'peak', hoursLeft: earthHoursToLunar(config, e.solarStormPeakHours) } };
@@ -72,7 +77,7 @@ export function runStorm(state: GameState, config: ScenarioConfig, dtHours: numb
     const [survived, next] = chance(s, e.solarStormHullSurvival);
     s = next;
     if (!survived) return kill(s, 'Murió por la tormenta solar: el casco de la nave no bastó para protegerlo.');
-    return withLog(s, 'La tormenta pegó de lleno y el casco aguantó (30 % de sobrevivir). No salgas hasta que termine.');
+    return withLog(s, 'La tormenta pegó de lleno y el casco aguantó (30 % de sobrevivir). No salgas hasta que termine.', true);
   }
-  return withLog(s, 'La tormenta está en su pico. En el refugio estás a salvo: no salgas hasta que termine.');
+  return withLog(s, 'La tormenta está en su pico. En el refugio estás a salvo: no salgas hasta que termine.', true);
 }

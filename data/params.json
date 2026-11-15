@@ -399,7 +399,7 @@
       "human_error_bar_threshold": 50,
       "human_error_extra_per_bar": 0.1,
       "solar_storm_per_day": 0.01,
-      "solar_storm_warning_hours": 8,
+      "solar_storm_warning_hours": 72,
       "solar_storm_peak_hours": 12,
       "solar_storm_hull_survival": 0.3,
       "meteor_per_year": 0.04,
@@ -412,7 +412,7 @@
         "station_failure": "10 % por semana por estación si se le dio mantenimiento en los últimos 7 días; +10 % por cada semana sin mantenimiento (máx. 90 %). Se reparte por día.",
         "injury": "2 % por trabajo terminado. Lesionado: camina a la mitad de velocidad y trabaja al doble de tiempo durante injury_hours horas lunares (mock).",
         "human_error": "1 % al iniciar una tanda; +10 % por cada barra del astronauta en 0, proporcional bajo 50 %. Si ocurre, se pierden los insumos.",
-        "solar_storm": "1 % por día. Aviso de solar_storm_warning_hours horas terrestres (mock; Kessler et al. 2022: las tormentas llegan con poco aviso). En el pico: en el refugio sobrevive siempre, en el casco 30 %, afuera muere. Salir durante el pico es morir.",
+        "solar_storm": "1 % por día. Control de Misión avisa por el comunicador 3 días antes (72 h; decisión del equipo, 2026-11-15). Nota: Kessler et al. 2022 dice que en la realidad las tormentas llegan con poco aviso. En el pico: en el refugio sobrevive siempre, en el casco 30 %, afuera muere. Salir durante el pico es morir.",
         "meteor": "Regla del juego: 4 % por año, repartido por día. Si cae, el astronauta muere."
       }
     },

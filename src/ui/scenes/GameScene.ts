@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { buildMoonScenario } from '../../scenarios/moon';
+import { DEBUG_EVENTS } from '../../sim/debug';
 import { inEclipse } from '../../sim/environment';
-import { suppliesLanded } from '../../sim/resupply';
 import { createInitialState } from '../../sim/state';
 import { step } from '../../sim/step';
 import { localHourOf, sunAt } from '../../sim/sun';
@@ -10,6 +10,10 @@ import { generateTerrain, type CraterOptions } from '../../sim/terrain';
 import type { BuildingId, GameState, Location, ScenarioConfig, WorkAction, ZoneConfig, ZoneId } from '../../sim/types';
 import { missionDay } from '../../sim/victory';
 import { beginWork, cancelWork } from '../../sim/work';
+import { Communicator } from '../comms/Communicator';
+import { milestonesEs } from '../comms/milestones';
+import { tutorialStepEs } from '../comms/tutorial';
+import { DebugMenu } from '../debugMenu';
 import { Hud } from '../hud';
 import { COLORS, FONT, GAME_HEIGHT, GAME_WIDTH, TEXT } from '../theme';
 import { PLAYER, TILE, WORLD_COLUMNS } from '../world/constants';
@@ -59,6 +63,7 @@ export class GameScene extends Phaser.Scene {
   private sky!: Sky;
   private structures!: Structures;
   private shelter!: ShelterSite;
+  private comms!: Communicator;
   private workIndicator!: WorkIndicator;
   private speedIndex = 0;
   private gameOverShown = false;
@@ -118,9 +123,12 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.startFollow(this.player.body, true, 0.1, 0.1);
 
     this.hud = new Hud(this, this.zone);
+    this.comms = new Communicator(this);
+    new DebugMenu(this, (i) => this.triggerDebugEvent(i));
 
     const kb = this.input.keyboard!;
     kb.on('keydown-ESC', () => this.scene.start('Menu'));
+    kb.on('keydown-ENTER', () => this.comms.next());
     kb.on('keydown-E', () => this.interact());
     kb.on('keydown-R', () => this.maintain());
     kb.on('keydown-T', () => (this.speedIndex = (this.speedIndex + 1) % SPEEDS.length));
@@ -142,7 +150,7 @@ export class GameScene extends Phaser.Scene {
     const speed = SPEEDS[this.speedIndex];
     const before = this.state;
     this.state = step(this.state, this.scenario, (deltaMs / 1000) * speed);
-    this.announceChanges(before, this.state);
+    this.announceMilestones(before);
 
     const localHour = localHourOf(this.state, this.scenario.time);
     const latitude = this.zone.latitudeDeg.value;
@@ -158,6 +166,8 @@ export class GameScene extends Phaser.Scene {
     this.hud.updateBase(this.state, this.scenario, deltaMs);
     this.hud.setAlerts(this.alertsEs());
     this.showNewLog();
+    this.comms.setTutorial(this.state.status === 'playing' ? tutorialStepEs(this.state, this.scenario) : null);
+    this.comms.update(deltaMs);
     const lightEs = this.zone.continuousLight
       ? eclipse
         ? 'eclipse polar'
@@ -203,36 +213,38 @@ export class GameScene extends Phaser.Scene {
     const storm = this.state.storm;
     if (storm) {
       const hours = Math.max(1, Math.round(storm.hoursLeft * this.scenario.dayNightCycleLengthDays.value));
+      const left = hours >= 36 ? `~${Math.round(hours / 24)} días` : `~${hours} h`;
       lines.push(
         storm.phase === 'warning'
-          ? `⚠ TORMENTA SOLAR en ~${hours} h: ve al refugio${this.state.shelterBuilt ? '' : ' (no tienes: el casco da 30 %)'}`
-          : `⚠ TORMENTA SOLAR en curso (~${hours} h): no salgas`,
+          ? `⚠ TORMENTA SOLAR en ${left}: ve al refugio${this.state.shelterBuilt ? '' : ' (no tienes: el casco da 30 %)'}`
+          : `⚠ TORMENTA SOLAR en curso (${left}): no salgas`,
       );
     }
     if (this.state.injuryHoursLeft > 0) lines.push('Lesionado: caminas más lento y los trabajos tardan el doble');
     return lines;
   }
 
-  /** Shows messages the simulation logged since the last frame. */
+  /** Shows messages the simulation logged since the last frame: important ones on the communicator. */
   private showNewLog(): void {
     const fresh = this.state.log.slice(this.logShown);
     this.logShown = this.state.log.length;
-    if (fresh.length > 0) this.hud.showMessage(fresh.join('\n'));
+    const minor = fresh.filter((e) => !e.comms).map((e) => e.textEs);
+    for (const e of fresh) if (e.comms) this.comms.push(e.textEs);
+    if (minor.length > 0) this.hud.showMessage(minor.join('\n'));
   }
 
-  /** Messages for things that happen on their own: a supply ship lands, the polar eclipse starts or ends. */
-  private announceChanges(before: GameState, after: GameState): void {
-    if (suppliesLanded(after, this.scenario) > suppliesLanded(before, this.scenario)) {
-      this.hud.showMessage('Aterrizó una nave de suministros. Ve a la pista a desarmarla.');
-    }
-    const wasDark = inEclipse(before, this.scenario);
-    const isDark = inEclipse(after, this.scenario);
-    if (!wasDark && isDark) {
-      const days = this.scenario.polarEclipseDays.value;
-      this.hud.showMessage(`Eclipse polar: unos ${days} días sin Sol. Los paneles no cargan; usa la energía guardada.`);
-    } else if (wasDark && !isDark) {
-      this.hud.showMessage('Terminó el eclipse: los paneles vuelven a cargar.');
-    }
+  /** Mission Control announces milestones (phases, supply ships, eclipse, lab available) on the communicator. */
+  private announceMilestones(before: GameState): void {
+    for (const text of milestonesEs(before, this.state, this.scenario)) this.comms.push(text);
+  }
+
+  /** Test menu (I): force an event. */
+  private triggerDebugEvent(index: number): void {
+    if (this.state.status !== 'playing') return;
+    const before = this.state;
+    this.state = DEBUG_EVENTS[index].run(this.state, this.scenario);
+    this.announceMilestones(before);
+    this.hud.showMessage(`Prueba: ${DEBUG_EVENTS[index].labelEs}`);
   }
 
   /** E key: start the task that makes sense where the astronaut stands. The effect comes when it ends. */
@@ -291,9 +303,10 @@ export class GameScene extends Phaser.Scene {
       this.add
         .text(cx, cy + 5, body, {
           fontFamily: FONT,
-          fontSize: '20px',
+          fontSize: '18px',
           color: TEXT.primary,
           align: 'center',
+          wordWrap: { width: 680 },
         })
         .setOrigin(0.5),
       this.add.text(cx, cy + 75, 'Esc: volver al menú', { fontFamily: FONT, fontSize: '16px', color: TEXT.muted }).setOrigin(0.5),

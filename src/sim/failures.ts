@@ -26,7 +26,7 @@ export function rollFailures(state: GameState, config: ScenarioConfig): GameStat
     s = next;
     if (broke) {
       s = { ...s, stations: { ...s.stations, [id]: { ...station, broken: true } } };
-      s = withLog(s, `Falla: ${config.buildings[id].nameEs} dejó de funcionar. Ve a repararla.`);
+      s = withLog(s, `Falla: ${config.buildings[id].nameEs} dejó de funcionar. Ve a repararla (E).`, true);
     }
   }
   return s;
