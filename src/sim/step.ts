@@ -1,14 +1,39 @@
-import { LUNAR_HOURS_PER_CYCLE } from './sun';
+import { runCrew } from './crew';
+import { runBuildings } from './processes';
+import { LUNAR_HOURS_PER_CYCLE, localHourOf, sunAt } from './sun';
 import type { GameState, ScenarioConfig } from './types';
 
-/**
- * Advances the simulation. Pure: returns a new state.
- * For now only the clock moves; resource processes and crew consumption plug in here.
- */
+/** Largest slice simulated at once, so fast-forward stays accurate. */
+const MAX_STEP_HOURS = 0.05;
+
+/** Advances the simulation by real seconds. Pure: returns a new state. */
 export function step(state: GameState, config: ScenarioConfig, dtRealSeconds: number): GameState {
   const lunarHoursPerRealSecond = LUNAR_HOURS_PER_CYCLE / (config.time.realMinutesPerLunarCycle * 60);
+  let remaining = dtRealSeconds * lunarHoursPerRealSecond;
+  let current = state;
+  while (remaining > 0 && current.status === 'playing') {
+    const dt = Math.min(remaining, MAX_STEP_HOURS);
+    current = stepHours(current, config, dt);
+    remaining -= dt;
+  }
+  return current;
+}
+
+function stepHours(state: GameState, config: ScenarioConfig, dtHours: number): GameState {
+  const zone = config.zones[state.zoneId];
+  const sun = sunAt(localHourOf(state, config.time), zone.latitudeDeg.value);
+
+  const machines = runBuildings(state, config, sun, dtHours);
+  const crew = runCrew(machines.resources, state.crew, config, dtHours);
+
+  const anyoneAlive = crew.crew.some((a) => a.alive);
   return {
     ...state,
-    elapsedLunarHours: state.elapsedLunarHours + dtRealSeconds * lunarHoursPerRealSecond,
+    elapsedLunarHours: state.elapsedLunarHours + dtHours,
+    resources: crew.resources,
+    buildingActivity: machines.activity,
+    crew: crew.crew,
+    status: anyoneAlive ? 'playing' : 'lost',
+    lostReasonEs: anyoneAlive ? null : `La tripulación murió por ${crew.deathCauseEs ?? 'causas desconocidas'}.`,
   };
 }

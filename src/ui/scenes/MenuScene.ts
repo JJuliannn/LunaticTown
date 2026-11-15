@@ -5,6 +5,7 @@ import { addButton, addStars } from '../widgets';
 const LOGO_KEY = 'logo';
 const LOGO_MAX_W = 640;
 const LOGO_MAX_H = 340;
+let shortcutUsed = false;
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -17,6 +18,14 @@ export class MenuScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Dev shortcut: open the page with ?zone=south_pole or ?zone=equator to skip the menus once.
+    const zone = new URLSearchParams(window.location.search).get('zone');
+    if (!shortcutUsed && (zone === 'south_pole' || zone === 'equator')) {
+      shortcutUsed = true;
+      this.scene.start('Game', { zoneId: zone });
+      return;
+    }
+
     this.cameras.main.setBackgroundColor(COLORS.background);
     addStars(this);
 

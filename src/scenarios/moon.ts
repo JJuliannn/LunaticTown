@@ -1,20 +1,23 @@
 import params from '../../data/params.json';
-import type { ScenarioConfig, TemperatureModel, ZoneConfig, ZoneId } from '../sim/types';
-import { isConfirmed, readNumber, type RawParam } from './params';
-
-type RawZone = Record<string, RawParam> & { name_es: string };
+import {
+  BUILDING_IDS,
+  type BuildingDef,
+  type BuildingId,
+  type ScenarioConfig,
+  type TemperatureModel,
+  type ZoneConfig,
+  type ZoneId,
+} from '../sim/types';
+import { isConfirmed, readNumber } from './params';
 
 function buildZone(id: ZoneId): ZoneConfig {
-  const z = params.science.moon.zones[id] as unknown as RawZone;
-  const n = (key: string) => readNumber(z[key], `moon.zones.${id}.${key}`);
+  const z = params.science.moon.zones[id];
   return {
     id,
     nameEs: z.name_es,
-    latitudeDeg: n('latitude_deg'),
-    sunlightShare: n('sunlight_share'),
-    dayHeatPeak: n('day_heat_peak'),
-    nightHeatFloor: n('night_heat_floor'),
-    radiationFactor: n('radiation_factor'),
+    latitudeDeg: readNumber(z.latitude_deg, `moon.zones.${id}.latitude_deg`),
+    radiationFactor: readNumber(z.radiation_factor, `moon.zones.${id}.radiation_factor`),
+    hasIce: z.has_ice.value,
   };
 }
 
@@ -36,11 +39,41 @@ function buildTemperatureModel(): TemperatureModel {
   };
 }
 
+function buildBuilding(id: BuildingId): BuildingDef {
+  // Optional flags are missing on most entries, so read them through a loose shape.
+  const b = params.game_balance.buildings[id] as {
+    name_es: string;
+    description_es: string;
+    phase: number;
+    max_count: number;
+    cost: BuildingDef['cost'];
+    inputs_per_hour: BuildingDef['inputsPerHour'];
+    outputs_per_hour: BuildingDef['outputsPerHour'];
+    needs_sunlight?: boolean;
+    needs_ice?: boolean;
+    battery_capacity?: number;
+  };
+  return {
+    id,
+    nameEs: b.name_es,
+    descriptionEs: b.description_es,
+    phase: b.phase === 3 ? 3 : 2,
+    maxCount: b.max_count,
+    cost: b.cost,
+    inputsPerHour: b.inputs_per_hour,
+    outputsPerHour: b.outputs_per_hour,
+    needsSunlight: b.needs_sunlight ?? false,
+    needsIce: b.needs_ice ?? false,
+    batteryCapacity: b.battery_capacity ?? 0,
+  };
+}
+
 export const ZONE_IDS: ZoneId[] = ['south_pole', 'equator'];
 
 export function buildMoonScenario(): ScenarioConfig {
   const s = params.science;
   const d = params.design;
+  const g = params.game_balance;
   return {
     id: 'moon',
     crewSize: d.crew_size.playtest_value,
@@ -58,6 +91,17 @@ export function buildMoonScenario(): ScenarioConfig {
     zones: {
       south_pole: buildZone('south_pole'),
       equator: buildZone('equator'),
+    },
+    buildings: Object.fromEntries(BUILDING_IDS.map((id) => [id, buildBuilding(id)])) as Record<BuildingId, BuildingDef>,
+    startResources: g.start_resources,
+    shipSalvage: g.ship_salvage,
+    hullBatteryCapacity: g.hull_battery_capacity,
+    crewRules: {
+      oxygenBarDropPerHour: g.crew.oxygen_bar_drop_per_hour,
+      waterBarDropPerHour: g.crew.water_bar_drop_per_hour,
+      foodBarDropPerHour: g.crew.food_bar_drop_per_hour,
+      barRecoverPerHour: g.crew.bar_recover_per_hour,
+      waterToWasteFraction: g.crew.water_to_waste_fraction,
     },
   };
 }

@@ -33,6 +33,9 @@ Plazo: hackathon de 2 días. Equipo hispanohablante. La interfaz del juego va en
 - Comida: hidroponía con luz artificial y cultivo de grillos para proteína. Los desechos humanos se procesan para obtener nitrógeno (nutriente de la hidroponía).
 - Radiación: protegen la cerámica del casco de la nave y el traje del astronauta; no se construye blindaje aparte.
 - Los paneles solares ya incluyen baterías.
+- Motor de procesos: cada máquina es una fila de datos en `game_balance.buildings` de `params.json` (costo, consumo y producción por hora lunar). Un solo motor (`src/sim/processes.ts`) las corre todas; agregar una máquina es agregar una fila.
+- Construcción: tecla E abre el menú, los números eligen. Las máquinas aparecen como cajas de colores junto a la base (placeholders). Tecla T acelera el tiempo (×1, ×5, ×20) para pruebas.
+- Derrota: muere toda la tripulación (oxígeno, agua o comida). La victoria sigue sin definir.
 - La temperatura se modela por zona y hora local, no como promedio.
 - El oxígeno se maneja con dos fuentes: tanques de reserva (finitos, seguridad) y producción (recurso a gestionar).
 - Ciclo cerrado de nutrientes: nitrógeno, bacterias, plantas, oxígeno.
@@ -68,11 +71,12 @@ Verificado por una persona: nada todavía.
 
 Con fuente, pendientes de revisión (`sourced` en `params.json`):
 - Temperatura de la superficie: Williams et al. 2017, Icarus 283 (Diviner), https://doi.org/10.1016/j.icarus.2016.08.012. Fórmula de día y temperaturas del ecuador por hora local. La interpolación entre puntos y el escalado del piso nocturno por latitud son supuestos nuestros.
+- Duración del ciclo lunar: 29,53 días terrestres (NASA Moon Fact Sheet, periodo sinódico), https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html
 - Consumo por persona y día terrestre (oxígeno 0,895 kg, agua potable 3,217 kg, comida seca 0,8 kg): BVAD Rev2 2022, Tabla 3-31, https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf
 
 Lista de referencias del equipo: "Referencias Finales.pdf" (grillos, HIDH/BVAD, Diviner, regolito y plantas, LCROSS, paneles solares).
 
-Faltan: producción y potencia del oxigenador, duración del ciclo lunar en días terrestres (para convertir el consumo diario a horas lunares), iluminación del polo sur, radiación, rendimiento de cultivos y grillos.
+Sin fuente (valores de prueba en `game_balance`): costos, producción y consumo de todas las máquinas, recursos iniciales, velocidad de las barras de la tripulación. Faltan fuentes para: producción y potencia del oxigenador, iluminación del polo sur, radiación, rendimiento de cultivos y grillos.
 
 Solo se confirmó que estos conjuntos existen en el archivo de la NASA (PDS):
 - LRO: Diviner (temperaturas), LOLA (topografía), LEND (neutrones, indicador de hidrógeno), CRaTER (radiación). https://pds-geosciences.wustl.edu/missions/lro/
@@ -88,14 +92,14 @@ Los recursos del reto (Planetary Computer, Meteomatics) tienen datos de la Tierr
 data/params.json       parámetros con estado de verificación (zonas en science.moon.zones)
 assets/                archivos estáticos (logo.png, sprites, sonidos); Vite los sirve desde la raíz: assets/logo.png -> logo.png
 src/main.ts            arranque de Phaser
-src/sim/               lógica pura (tipos, estado inicial, generación de terreno; luego step, eventos, salud)
+src/sim/               lógica pura: step (avance), sun y temperature, processes (máquinas), crew (consumo y barras), actions (desarmar nave, construir, fases), terrain
 src/scenarios/         moon.ts arma la configuración desde params.json; params.ts elige value o playtest_value
-src/ui/                tema, widgets, HUD y escenas (Menu, ZoneSelect, Game)
+src/ui/                tema, widgets, HUD, menú de construcción y escenas (Menu, ZoneSelect, Game)
 src/ui/world/          mundo lateral: jugador, terreno, constantes de física (valores de juego)
 CLAUDE.md              este archivo
 ```
 
-Comandos: `npm install`, `npm run dev` (desarrollo), `npm run build` (revisa tipos y genera `dist/`).
+Comandos: `npm install`, `npm run dev` (desarrollo), `npm run build` (revisa tipos y genera `dist/`). Atajo de desarrollo: abrir con `?zone=south_pole` o `?zone=equator` salta los menús.
 
 ## Hitos
 

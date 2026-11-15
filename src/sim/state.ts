@@ -1,14 +1,4 @@
-import type { Astronaut, GameState, ScenarioConfig, ZoneId } from './types';
-
-// Starting amounts are game units chosen for playtesting, not real quantities.
-const START_RESOURCES = {
-  energy: 100,
-  oxygenTanks: 100,
-  oxygenProduction: 0,
-  water: 100,
-  food: 100,
-  nitrogen: 100,
-};
+import { BUILDING_IDS, type Astronaut, type BuildingId, type GameState, type ScenarioConfig, type ZoneId } from './types';
 
 const CREW_NAMES = ['Ana', 'Luis', 'Sofía', 'Mateo', 'Valeria', 'Diego'];
 
@@ -16,6 +6,7 @@ function createAstronaut(id: number): Astronaut {
   return {
     id,
     name: CREW_NAMES[id % CREW_NAMES.length],
+    alive: true,
     oxygen: 100,
     water: 100,
     food: 100,
@@ -24,12 +15,20 @@ function createAstronaut(id: number): Astronaut {
   };
 }
 
+export function zeroPerBuilding(): Record<BuildingId, number> {
+  return Object.fromEntries(BUILDING_IDS.map((id) => [id, 0])) as Record<BuildingId, number>;
+}
+
 export function createInitialState(config: ScenarioConfig, zoneId: ZoneId): GameState {
-  const crew = Array.from({ length: config.crewSize }, (_, i) => createAstronaut(i));
   return {
     zoneId,
     elapsedLunarHours: 0,
-    resources: { ...START_RESOURCES },
-    crew,
+    status: 'playing',
+    lostReasonEs: null,
+    shipUnpacked: false,
+    resources: { ...config.startResources },
+    buildings: zeroPerBuilding(),
+    buildingActivity: zeroPerBuilding(),
+    crew: Array.from({ length: config.crewSize }, (_, i) => createAstronaut(i)),
   };
 }

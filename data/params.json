@@ -71,11 +71,12 @@
     },
     "moon": {
       "day_night_cycle_length": {
-        "value": null,
-        "unit": "days",
-        "status": "needs_source",
+        "value": 29.53,
+        "unit": "días terrestres",
+        "status": "sourced",
         "playtest_value": 30,
-        "source_url": null
+        "source_url": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html",
+        "source_note": "NASA Moon Fact Sheet, Synodic period (days)."
       },
       "surface_radiation_dose": {
         "value": null,
@@ -95,43 +96,13 @@
         "source_url": null
       },
       "zones": {
-        "_note": "Valores por zona. heat en escala de juego 0-100. sunlight_share = fracción del ciclo con luz (0-1). radiation_factor multiplica surface_radiation_dose. Candidatas: LRO Diviner (temperatura), LOLA (iluminación/topografía), CRaTER (radiación).",
+        "_note": "Valores por zona. radiation_factor multiplica surface_radiation_dose (candidata: LRO CRaTER). La temperatura sale de temperature_model. Falta fuente para la iluminación del polo sur (candidata: LRO LOLA).",
         "south_pole": {
           "name_es": "Polo sur",
           "latitude_deg": {
             "value": -85,
             "status": "decided",
             "note": "Región polar del artículo de Diviner (más allá de 85°)."
-          },
-          "sunlight_share": {
-            "value": null,
-            "unit": "fraction",
-            "status": "needs_source",
-            "playtest_value": 0.8,
-            "source_url": null,
-            "candidate_sources": [
-              "LRO LOLA (PDS)"
-            ]
-          },
-          "day_heat_peak": {
-            "value": null,
-            "unit": "game_heat_0_100",
-            "status": "needs_source",
-            "playtest_value": 35,
-            "source_url": null,
-            "candidate_sources": [
-              "LRO Diviner (PDS)"
-            ]
-          },
-          "night_heat_floor": {
-            "value": null,
-            "unit": "game_heat_0_100",
-            "status": "needs_source",
-            "playtest_value": 5,
-            "source_url": null,
-            "candidate_sources": [
-              "LRO Diviner (PDS)"
-            ]
           },
           "radiation_factor": {
             "value": null,
@@ -142,6 +113,11 @@
             "candidate_sources": [
               "LRO CRaTER (PDS)"
             ]
+          },
+          "has_ice": {
+            "value": true,
+            "status": "decided",
+            "note": "Hielo en cráteres polares en sombra (evidencia: LCROSS). Decisión de diseño: solo el polo tiene extractor de hielo."
           }
         },
         "equator": {
@@ -150,36 +126,6 @@
             "value": 0,
             "status": "decided"
           },
-          "sunlight_share": {
-            "value": null,
-            "unit": "fraction",
-            "status": "needs_source",
-            "playtest_value": 0.5,
-            "source_url": null,
-            "candidate_sources": [
-              "LRO LOLA (PDS)"
-            ]
-          },
-          "day_heat_peak": {
-            "value": null,
-            "unit": "game_heat_0_100",
-            "status": "needs_source",
-            "playtest_value": 95,
-            "source_url": null,
-            "candidate_sources": [
-              "LRO Diviner (PDS)"
-            ]
-          },
-          "night_heat_floor": {
-            "value": null,
-            "unit": "game_heat_0_100",
-            "status": "needs_source",
-            "playtest_value": 15,
-            "source_url": null,
-            "candidate_sources": [
-              "LRO Diviner (PDS)"
-            ]
-          },
           "radiation_factor": {
             "value": null,
             "unit": "multiplier",
@@ -189,6 +135,11 @@
             "candidate_sources": [
               "LRO CRaTER (PDS)"
             ]
+          },
+          "has_ice": {
+            "value": false,
+            "status": "decided",
+            "note": "Zona difícil: el agua se trae y se recicla."
           }
         }
       },
@@ -224,6 +175,140 @@
         "source_url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
         "source_note": "BVAD Rev2 sección ISRU (pág. 166): reducción carbotérmica, CH4 + regolito fundido (>1650 °C) -> CO/CO2 -> metanación -> H2O -> electrólisis -> O2. Proceso confirmado; faltan cifras de producción y potencia (Tabla 4-85 ilegible en la extracción, revisar a mano).",
         "playtest_value": 1
+      }
+    }
+  },
+  "game_balance": {
+    "_note": "Balance del juego. Todo son valores de prueba (unidades de juego), NO datos reales. Masa en kg, energía en unidades de juego, tasas por hora lunar (= 1 minuto real).",
+    "status": "needs_source",
+    "start_resources": {
+      "energy": 60,
+      "oxygenReserve": 160,
+      "oxygen": 0,
+      "water": 450,
+      "minerals": 60,
+      "titanium": 0,
+      "seeds": 10,
+      "substrate": 20,
+      "rations": 140,
+      "vegetables": 0,
+      "protein": 0,
+      "plantWaste": 0,
+      "humanWaste": 0,
+      "nitrogen": 5
+    },
+    "ship_salvage": {
+      "titanium": 200
+    },
+    "hull_battery_capacity": 60,
+    "crew": {
+      "oxygen_bar_drop_per_hour": 60,
+      "water_bar_drop_per_hour": 6,
+      "food_bar_drop_per_hour": 2,
+      "bar_recover_per_hour": 15,
+      "water_to_waste_fraction": 0.9
+    },
+    "buildings": {
+      "solar_panels": {
+        "name_es": "Paneles solares",
+        "phase": 2,
+        "max_count": 4,
+        "cost": {
+          "titanium": 20
+        },
+        "inputs_per_hour": {},
+        "outputs_per_hour": {
+          "energy": 14
+        },
+        "needs_sunlight": true,
+        "battery_capacity": 120,
+        "description_es": "Energía mientras hay Sol. Traen baterías para la noche."
+      },
+      "oxygenator": {
+        "name_es": "Oxigenador",
+        "phase": 2,
+        "max_count": 3,
+        "cost": {
+          "titanium": 25
+        },
+        "inputs_per_hour": {
+          "energy": 4
+        },
+        "outputs_per_hour": {
+          "oxygen": 5
+        },
+        "description_es": "Reducción carbotérmica: saca oxígeno del regolito."
+      },
+      "ice_extractor": {
+        "name_es": "Extractor de hielo",
+        "phase": 2,
+        "max_count": 2,
+        "cost": {
+          "titanium": 25
+        },
+        "inputs_per_hour": {
+          "energy": 3,
+          "minerals": 0.25
+        },
+        "outputs_per_hour": {
+          "water": 12
+        },
+        "needs_ice": true,
+        "description_es": "Saca hielo polar y lo purifica con minerales."
+      },
+      "hydroponics": {
+        "name_es": "Hidroponía",
+        "phase": 3,
+        "max_count": 3,
+        "cost": {
+          "titanium": 15,
+          "seeds": 3,
+          "substrate": 6
+        },
+        "inputs_per_hour": {
+          "energy": 3,
+          "water": 0.5,
+          "nitrogen": 0.2
+        },
+        "outputs_per_hour": {
+          "vegetables": 1.6,
+          "oxygen": 1,
+          "plantWaste": 0.6
+        },
+        "description_es": "Rábano, lechuga romana y pak choi con luz artificial."
+      },
+      "cricket_farm": {
+        "name_es": "Cultivo de grillos",
+        "phase": 3,
+        "max_count": 2,
+        "cost": {
+          "titanium": 10
+        },
+        "inputs_per_hour": {
+          "plantWaste": 0.5,
+          "water": 0.3
+        },
+        "outputs_per_hour": {
+          "protein": 0.7
+        },
+        "description_es": "Proteína a partir de restos vegetales."
+      },
+      "waste_processor": {
+        "name_es": "Baño procesador",
+        "phase": 3,
+        "max_count": 2,
+        "cost": {
+          "titanium": 15
+        },
+        "inputs_per_hour": {
+          "humanWaste": 8,
+          "energy": 1
+        },
+        "outputs_per_hour": {
+          "nitrogen": 0.5,
+          "water": 7.6
+        },
+        "description_es": "Procesa desechos: nitrógeno para las plantas y agua reciclada."
       }
     }
   }
