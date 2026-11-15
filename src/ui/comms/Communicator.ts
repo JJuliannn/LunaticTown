@@ -34,16 +34,16 @@ export class Communicator {
     const top = GAME_HEIGHT - H - 10;
     this.panel = scene.add.rectangle(x, top, W, H, COLORS.panel, 0.94).setOrigin(0.5, 0).setStrokeStyle(2, COLORS.accent);
     const left = x - W / 2 + 14;
-    this.header = scene.add.text(left, top + 8, '', { fontFamily: FONT, fontSize: '12px', color: TEXT.accent, fontStyle: 'bold' });
+    this.header = scene.add.text(left, top + 8, '', { fontFamily: FONT, fontSize: '15px', color: TEXT.accent });
     this.body = scene.add.text(left, top + 28, '', {
       fontFamily: FONT,
-      fontSize: '15px',
+      fontSize: '19px',
       color: TEXT.primary,
       wordWrap: { width: W - 28 },
       lineSpacing: 2,
     });
     this.footer = scene.add
-      .text(x + W / 2 - 14, top + 8, '', { fontFamily: FONT, fontSize: '12px', color: TEXT.muted })
+      .text(x + W / 2 - 14, top + 8, '', { fontFamily: FONT, fontSize: '15px', color: TEXT.muted })
       .setOrigin(1, 0);
     [this.panel, this.header, this.body, this.footer].forEach((o) => o.setScrollFactor(0).setDepth(DEPTH));
     this.render();

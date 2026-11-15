@@ -16,7 +16,7 @@ export class WorkIndicator {
     this.track = scene.add.rectangle(0, 0, BAR_W, BAR_H, 0x000000, 0.6).setStrokeStyle(1, 0xffffff, 0.4).setDepth(60);
     this.fill = scene.add.rectangle(0, 0, 0, BAR_H, 0x7fffa0).setOrigin(0, 0.5).setDepth(61);
     this.label = scene.add
-      .text(0, 0, '', { fontFamily: FONT, fontSize: '13px', color: TEXT.primary, backgroundColor: '#141824', padding: { x: 4, y: 2 } })
+      .text(0, 0, '', { fontFamily: FONT, fontSize: '16px', color: TEXT.primary, backgroundColor: '#141824', padding: { x: 4, y: 2 } })
       .setOrigin(0.5, 1)
       .setDepth(61);
     this.update(null, 0, 0);

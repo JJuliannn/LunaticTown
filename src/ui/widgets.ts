@@ -38,7 +38,7 @@ export function addBar(
   const clamped = Phaser.Math.Clamp(ratio, 0, 1);
   const labelText = scene.add.text(x, y, label, {
     fontFamily: FONT,
-    fontSize: '16px',
+    fontSize: '20px',
     color: TEXT.muted,
   });
   const barX = x + 150;

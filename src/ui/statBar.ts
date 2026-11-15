@@ -34,11 +34,11 @@ export class StatBar {
   ) {
     this.barW = opts.width - LABEL_W - 64;
     const barX = x + LABEL_W;
-    const labelText = scene.add.text(x, y - 1, label, { fontFamily: FONT, fontSize: '14px', color: TEXT.muted });
+    const labelText = scene.add.text(x, y - 1, label, { fontFamily: FONT, fontSize: '18px', color: TEXT.muted });
     const track = scene.add.rectangle(barX, y + 8, this.barW, BAR_H, COLORS.barTrack).setOrigin(0, 0.5);
     this.fill = scene.add.rectangle(barX, y + 8, 0, BAR_H, opts.color).setOrigin(0, 0.5);
     const frame = scene.add.rectangle(barX, y + 8, this.barW, BAR_H).setOrigin(0, 0.5).setStrokeStyle(1, 0x000000, 0.5);
-    this.valueText = scene.add.text(barX + this.barW + 8, y - 1, '', { fontFamily: FONT, fontSize: '14px', color: TEXT.primary });
+    this.valueText = scene.add.text(barX + this.barW + 8, y - 1, '', { fontFamily: FONT, fontSize: '18px', color: TEXT.primary });
     this.objects = [labelText, track, this.fill, frame, this.valueText];
   }
 

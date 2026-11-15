@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Jersey+10&display=block" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      /* Lunatic Town palette (same as the game: src/ui/theme.ts). */
+      :root {
+        --ground: #05060a;
+        --panel: #141824;
+        --ink: #e8ecf5;
+        --muted: #8a94ab;
+        --accent: #7fb2ff;
+        --warn: #ffc857;
+        --ok: #7fffa0;
+        --danger: #ff5d5d;
+        --font: 'Jersey 10', monospace;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--ground);
+      }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        font-family: var(--font);
+        color: var(--ink);
+        font-variant-ligatures: none;
+      }
+      .clip {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      .pixel {
+        image-rendering: pixelated;
+      }
+      #stars {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+      }
+      .star {
+        position: absolute;
+        background: #fff;
+      }
+
+      /* ---------- Intro ---------- */
+      #intro {
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 28px;
+      }
+      #intro-logo {
+        width: 760px;
+      }
+      #intro-sub {
+        font-size: 58px;
+        color: var(--muted);
+        text-align: center;
+        line-height: 1.3;
+      }
+      #intro-sub b {
+        color: var(--ink);
+      }
+      #intro-tag {
+        font-size: 38px;
+        color: var(--accent);
+        border: 3px solid var(--accent);
+        padding: 10px 26px;
+      }
+
+      /* ---------- Gameplay shots ---------- */
+      .shot {
+        z-index: 3;
+      }
+      .shot img {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+        transform-origin: 50% 60%;
+      }
+      .shot .shade {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 420px;
+        background: linear-gradient(to top, rgba(5, 6, 10, 0.97) 35%, rgba(5, 6, 10, 0));
+      }
+      .caption {
+        position: absolute;
+        left: 90px;
+        right: 90px;
+        bottom: 70px;
+      }
+      .caption .step {
+        display: inline-block;
+        font-size: 36px;
+        color: var(--ground);
+        background: var(--accent);
+        padding: 6px 18px;
+        margin-bottom: 18px;
+      }
+      .caption h2 {
+        font-size: 96px;
+        line-height: 1.05;
+        margin-bottom: 14px;
+      }
+      .caption p {
+        font-size: 46px;
+        color: var(--muted);
+        line-height: 1.3;
+      }
+      .caption h2 em {
+        font-style: normal;
+        color: var(--warn);
+      }
+      #storm .caption .step {
+        background: var(--danger);
+      }
+
+      /* ---------- Data ---------- */
+      #data {
+        z-index: 4;
+        background: var(--ground);
+        padding: 110px 120px;
+      }
+      #data h2 {
+        font-size: 96px;
+        margin-bottom: 14px;
+      }
+      #data .lead {
+        font-size: 44px;
+        color: var(--muted);
+        margin-bottom: 60px;
+      }
+      #tiles {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 34px;
+      }
+      .tile {
+        background: var(--panel);
+        border: 3px solid #3a4766;
+        padding: 34px 30px;
+        min-height: 430px;
+        display: flex;
+        flex-direction: column;
+      }
+      .tile .num {
+        font-size: 120px;
+        color: var(--accent);
+        line-height: 1;
+      }
+      .tile .unit {
+        font-size: 38px;
+        color: var(--accent);
+        margin: 10px 0 24px;
+      }
+      .tile .what {
+        font-size: 40px;
+        line-height: 1.25;
+        flex: 1;
+      }
+      .tile .src {
+        font-size: 28px;
+        color: var(--muted);
+        line-height: 1.3;
+        margin-top: 20px;
+      }
+
+      /* ---------- Outro ---------- */
+      #outro {
+        z-index: 6;
+        background: rgba(5, 6, 10, 0.92);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 30px;
+        /* Leave the bottom strip free for the walking astronaut. */
+        padding-bottom: 200px;
+      }
+      #outro-logo {
+        width: 560px;
+      }
+      #outro-play {
+        font-size: 52px;
+        color: var(--muted);
+      }
+      #outro-url {
+        font-size: 120px;
+        color: var(--ok);
+      }
+      #outro-credit {
+        font-size: 36px;
+        color: var(--muted);
+      }
+      #walker {
+        position: absolute;
+        bottom: 24px;
+        left: 0;
+        width: 128px;
+        height: 192px;
+        background-image: url('assets/astronaut.png');
+        background-size: 768px 192px;
+        background-position: 0 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="30" data-width="1920" data-height="1080">
+      <!-- Starfield behind everything (deterministic positions, built below). -->
+      <div id="stars" class="clip" data-start="0" data-duration="30" data-track-index="0"></div>
+
+      <!-- 0-4 s: title -->
+      <section id="intro" class="clip" data-start="0" data-duration="4" data-track-index="1">
+        <img id="intro-logo" class="pixel" src="assets/logo.png" alt="Lunatic Town" />
+        <div id="intro-sub">Run a base on the Moon<br /><b>and keep your astronaut alive</b></div>
+        <div id="intro-tag">NASA Space Apps Challenge · Challenge 03</div>
+      </section>
+
+      <!-- 4-8 s: zones -->
+      <section id="zones" class="clip shot" data-start="4" data-duration="4" data-track-index="2">
+        <img src="assets/shots/02-zones.png" alt="" />
+        <div class="shade"></div>
+        <div class="caption">
+          <div class="step">1 · CHOOSE WHERE TO LAND</div>
+          <h2>South pole, shadowed crater or equator</h2>
+          <p>Each zone changes sunlight, temperature and the water you can get.</p>
+        </div>
+      </section>
+
+      <!-- 8-12.5 s: base -->
+      <section id="base" class="clip shot" data-start="8" data-duration="4.5" data-track-index="2">
+        <img src="assets/shots/04-base.png" alt="" />
+        <div class="shade"></div>
+        <div class="caption">
+          <div class="step">2 · BUILD AND RUN THE BASE</div>
+          <h2>Energy, oxygen, water and food</h2>
+          <p>Nothing is automatic: walk to each station, do the work, collect what it makes.</p>
+        </div>
+      </section>
+
+      <!-- 12.5-16.5 s: crater -->
+      <section id="crater" class="clip shot" data-start="12.5" data-duration="4" data-track-index="2">
+        <img src="assets/shots/06-crater.png" alt="" />
+        <div class="shade"></div>
+        <div class="caption">
+          <div class="step">3 · EVERY DESIGN CHOICE MATTERS</div>
+          <h2>Ice lives in the shadow, <em>power lives in the light</em></h2>
+          <p>In the crater you must climb to the sunlit rim to collect solar power.</p>
+        </div>
+      </section>
+
+      <!-- 16.5-21 s: storm -->
+      <section id="storm" class="clip shot" data-start="16.5" data-duration="4.5" data-track-index="2">
+        <img src="assets/shots/05-storm.png" alt="" />
+        <div class="shade"></div>
+        <div class="caption">
+          <div class="step">4 · SURVIVE THE EVENTS</div>
+          <h2>Solar storms, failures and eclipses</h2>
+          <p>Mission Control warns you by radio. You decide how to prepare.</p>
+        </div>
+      </section>
+
+      <!-- 21-25.5 s: real data -->
+      <section id="data" class="clip" data-start="21" data-duration="4.5" data-track-index="3">
+        <h2>Built on real data</h2>
+        <div class="lead">Every number in the game has a source.</div>
+        <div id="tiles">
+          <div class="tile">
+            <div class="num" id="n-o2">0.895</div>
+            <div class="unit">kg of O₂ / day</div>
+            <div class="what">Oxygen one person breathes</div>
+            <div class="src">BVAD, NASA (2022)</div>
+          </div>
+          <div class="tile">
+            <div class="num" id="n-dose">1369</div>
+            <div class="unit">µSv / day</div>
+            <div class="what">Radiation measured on the lunar surface</div>
+            <div class="src">Chang'E 4, Zhang et al. (2020)</div>
+          </div>
+          <div class="tile">
+            <div class="num" id="n-days">30</div>
+            <div class="unit">days</div>
+            <div class="what">Artemis surface habitat mission</div>
+            <div class="src">Burke, Howard &amp; Kessler, NASA (2022)</div>
+          </div>
+          <div class="tile">
+            <div class="num" id="n-temp">-223</div>
+            <div class="unit">°C (50 K)</div>
+            <div class="what">Minimum temperature in the south polar region</div>
+            <div class="src">LRO Diviner, Williams et al. (2017)</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 25.5-30 s: victory, then the call to play -->
+      <section id="win" class="clip shot" data-start="25.5" data-duration="4.5" data-track-index="2">
+        <img src="assets/shots/07-win.png" alt="" />
+      </section>
+      <section id="outro" class="clip" data-start="27" data-duration="3" data-track-index="4">
+        <img id="outro-logo" class="pixel" src="assets/logo.png" alt="Lunatic Town" />
+        <div id="outro-play">Play free in your browser</div>
+        <div id="outro-url">lunatic-town.vercel.app</div>
+        <div id="outro-credit">NASA Space Apps Challenge 2026 · Challenge 03</div>
+        <div id="walker" class="pixel"></div>
+      </section>
+    </div>
+
+    <script>
+      // Deterministic starfield (seeded PRNG, no Math.random).
+      (function buildStars() {
+        let seed = 1969;
+        const rnd = () => {
+          seed = (seed * 1664525 + 1013904223) >>> 0;
+          return seed / 4294967296;
+        };
+        const host = document.getElementById('stars');
+        for (let i = 0; i < 260; i++) {
+          const s = document.createElement('div');
+          s.className = 'star';
+          const size = rnd() < 0.15 ? 4 : 2;
+          s.style.cssText = `left:${Math.floor(rnd() * 1920)}px;top:${Math.floor(rnd() * 1080)}px;width:${size}px;height:${size}px;opacity:${(0.25 + rnd() * 0.7).toFixed(2)}`;
+          host.appendChild(s);
+        }
+      })();
+
+      const tl = gsap.timeline({ paused: true });
+
+      // Stars drift slowly for the whole video.
+      tl.fromTo('#stars', { x: 0 }, { x: -120, duration: 30, ease: 'none' }, 0);
+
+      // Intro (0-4)
+      tl.fromTo('#intro-logo', { scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.8, ease: 'back.out(1.6)' }, 0.1);
+      tl.fromTo('#intro-sub', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out' }, 0.8);
+      tl.fromTo('#intro-tag', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: 'power2.out' }, 1.3);
+      tl.to('#intro', { opacity: 0, duration: 0.4, ease: 'power1.in' }, 3.6);
+
+      // Gameplay shots: fade in, slow push-in, caption slides up, fade out.
+      const shots = [
+        { id: '#zones', start: 4, dur: 4 },
+        { id: '#base', start: 8, dur: 4.5 },
+        { id: '#crater', start: 12.5, dur: 4 },
+        { id: '#storm', start: 16.5, dur: 4.5 },
+      ];
+      for (const s of shots) {
+        tl.fromTo(s.id, { opacity: 0 }, { opacity: 1, duration: 0.35, ease: 'power1.out' }, s.start);
+        tl.fromTo(`${s.id} img`, { scale: 1 }, { scale: 1.07, duration: s.dur, ease: 'none' }, s.start);
+        tl.fromTo(`${s.id} .step`, { x: -40, opacity: 0 }, { x: 0, opacity: 1, duration: 0.4, ease: 'power2.out' }, s.start + 0.25);
+        tl.fromTo(`${s.id} h2`, { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: 'power2.out' }, s.start + 0.4);
+        tl.fromTo(`${s.id} p`, { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: 'power2.out' }, s.start + 0.65);
+        tl.to(s.id, { opacity: 0, duration: 0.3, ease: 'power1.in' }, s.start + s.dur - 0.3);
+      }
+
+      // Data (21-25.5): tiles pop in one by one, numbers count up.
+      tl.fromTo('#data', { opacity: 0 }, { opacity: 1, duration: 0.3 }, 21);
+      tl.fromTo('#data h2', { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: 'power2.out' }, 21.1);
+      tl.fromTo('#data .lead', { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: 'power2.out' }, 21.3);
+      tl.fromTo('.tile', { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: 'back.out(1.4)', stagger: 0.18 }, 21.5);
+      const counters = [
+        { id: '#n-o2', to: 0.895, fmt: (v) => v.toFixed(3) },
+        { id: '#n-dose', to: 1369, fmt: (v) => String(Math.round(v)) },
+        { id: '#n-days', to: 30, fmt: (v) => String(Math.round(v)) },
+        { id: '#n-temp', to: -223, fmt: (v) => String(Math.round(v)) },
+      ];
+      counters.forEach((c, i) => {
+        const el = document.querySelector(c.id);
+        const box = { v: 0 };
+        tl.fromTo(
+          box,
+          { v: 0 },
+          { v: c.to, duration: 1.2, ease: 'power2.out', onUpdate: () => (el.textContent = c.fmt(box.v)) },
+          21.6 + i * 0.18,
+        );
+      });
+      tl.to('#data', { opacity: 0, duration: 0.3, ease: 'power1.in' }, 25.2);
+
+      // Victory shot (25.5-30) and the outro card over it (27-30).
+      tl.fromTo('#win', { opacity: 0 }, { opacity: 1, duration: 0.35 }, 25.5);
+      tl.fromTo('#win img', { scale: 1.08 }, { scale: 1, duration: 2, ease: 'power2.out' }, 25.5);
+      tl.fromTo('#outro', { opacity: 0 }, { opacity: 1, duration: 0.4, ease: 'power1.out' }, 27);
+      tl.fromTo('#outro-logo', { y: -30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: 'back.out(1.6)' }, 27.1);
+      tl.fromTo('#outro-play', { opacity: 0 }, { opacity: 1, duration: 0.4 }, 27.35);
+      tl.fromTo('#outro-url', { scale: 0.85, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(2)' }, 27.5);
+      tl.fromTo('#outro-credit', { opacity: 0 }, { opacity: 1, duration: 0.4 }, 27.8);
+      // The astronaut walks across the bottom (sprite sheet: 3 frames of 128 px, stepped).
+      tl.fromTo('#walker', { x: -140 }, { x: 1980, duration: 3, ease: 'none' }, 27);
+      tl.fromTo(
+        '#walker',
+        { backgroundPosition: '0px 0px' },
+        { backgroundPosition: '-384px 0px', duration: 0.375, ease: 'steps(3)', repeat: 7 },
+        27,
+      );
+
+      window.__timelines = window.__timelines || {};
+      window.__timelines['main'] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

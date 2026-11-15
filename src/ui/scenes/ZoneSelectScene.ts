@@ -44,7 +44,7 @@ export class ZoneSelectScene extends Phaser.Scene {
           cx,
           578,
           '* Temperaturas según un modelo basado en Diviner, pendientes de revisión. El fondo del cráter y la radiación son valores de prueba.',
-          { fontFamily: FONT, fontSize: '14px', color: TEXT.warning, align: 'center', wordWrap: { width: GAME_WIDTH - 120 } },
+          { fontFamily: FONT, fontSize: '18px', color: TEXT.warning, align: 'center', wordWrap: { width: GAME_WIDTH - 120 } },
         )
         .setOrigin(0.5, 0);
     }
@@ -63,11 +63,10 @@ export class ZoneSelectScene extends Phaser.Scene {
     const width = CARD_W - 48;
 
     this.add.text(left, top, zone.nameEs, { fontFamily: FONT, fontSize: '28px', color: TEXT.primary });
-    this.add.text(left, top + 40, `Latitud: ${zone.latitudeDeg.value}°`, { fontFamily: FONT, fontSize: '15px', color: TEXT.muted });
+    this.add.text(left, top + 40, `Latitud: ${zone.latitudeDeg.value}°`, { fontFamily: FONT, fontSize: '19px', color: TEXT.muted });
     this.add.text(left + width, top + 40, zone.difficultyEs, {
       fontFamily: FONT,
-      fontSize: '15px',
-      fontStyle: 'bold',
+      fontSize: '19px',
       color: DIFFICULTY_COLOR[zone.difficultyEs] ?? TEXT.primary,
     }).setOrigin(1, 0);
 
@@ -82,7 +81,7 @@ export class ZoneSelectScene extends Phaser.Scene {
 
     this.add.text(left, top + 150, zone.summaryEs, {
       fontFamily: FONT,
-      fontSize: '15px',
+      fontSize: '19px',
       color: TEXT.muted,
       wordWrap: { width },
       lineSpacing: 3,

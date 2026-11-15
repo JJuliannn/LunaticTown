@@ -309,7 +309,7 @@ export class GameScene extends Phaser.Scene {
           wordWrap: { width: 680 },
         })
         .setOrigin(0.5),
-      this.add.text(cx, cy + 75, 'Esc: volver al menú', { fontFamily: FONT, fontSize: '16px', color: TEXT.muted }).setOrigin(0.5),
+      this.add.text(cx, cy + 75, 'Esc: volver al menú', { fontFamily: FONT, fontSize: '20px', color: TEXT.muted }).setOrigin(0.5),
     ];
     objects.forEach((o) => o.setScrollFactor(0).setDepth(300));
   }

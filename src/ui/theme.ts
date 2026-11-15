@@ -19,6 +19,6 @@ export const TEXT = {
   warning: '#ffc857',
 };
 
-/** Pixelify Sans Bold, loaded from Google Fonts in index.html. */
-export const FONT_FACE = 'Pixelify Sans';
+/** Jersey 10, loaded from Google Fonts in index.html. */
+export const FONT_FACE = 'Jersey 10';
 export const FONT = `"${FONT_FACE}", monospace`;

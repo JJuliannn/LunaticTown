@@ -64,11 +64,11 @@ export class Hud {
     const x = PANEL_X + 14;
     const w = PANEL_W - 28;
     const panel = scene.add.rectangle(PANEL_X, PANEL_Y, PANEL_W, 416, COLORS.panel, 0.88).setOrigin(0).setStrokeStyle(1, COLORS.border);
-    this.phaseText = scene.add.text(x, 22, '', { fontFamily: FONT, fontSize: '16px', color: TEXT.accent });
-    this.goalText = scene.add.text(x, 44, '', { fontFamily: FONT, fontSize: '13px', color: TEXT.primary, wordWrap: { width: w } });
+    this.phaseText = scene.add.text(x, 22, '', { fontFamily: FONT, fontSize: '20px', color: TEXT.accent });
+    this.goalText = scene.add.text(x, 44, '', { fontFamily: FONT, fontSize: '16px', color: TEXT.primary, wordWrap: { width: w } });
 
     const section = (y: number, label: string) =>
-      scene.add.text(x, y, label, { fontFamily: FONT, fontSize: '11px', color: TEXT.muted, fontStyle: 'bold' });
+      scene.add.text(x, y, label, { fontFamily: FONT, fontSize: '14px', color: TEXT.muted });
     this.crewHeader = section(82, 'ASTRONAUTA');
     const crewHeader = this.crewHeader;
     let y = 100;
@@ -99,18 +99,18 @@ export class Hud {
     const materialsHeader = section(y, 'MATERIALES');
     this.materialsText = scene.add.text(x, y + 18, '', {
       fontFamily: FONT,
-      fontSize: '13px',
+      fontSize: '16px',
       color: TEXT.primary,
       lineSpacing: 3,
       wordWrap: { width: w },
     });
-    this.readyText = scene.add.text(x, y + 62, '', { fontFamily: FONT, fontSize: '13px', color: '#7fffa0', wordWrap: { width: w } });
+    this.readyText = scene.add.text(x, y + 62, '', { fontFamily: FONT, fontSize: '16px', color: '#7fffa0', wordWrap: { width: w } });
 
     const right = GAME_WIDTH - 20;
     const title = scene.add.text(right, 16, zone.nameEs, { fontFamily: FONT, fontSize: '20px', color: TEXT.accent }).setOrigin(1, 0);
     this.clockText = scene.add.text(right, 42, '', { fontFamily: FONT, fontSize: '20px', color: TEXT.primary }).setOrigin(1, 0);
     this.envText = scene.add
-      .text(right, 70, '', { fontFamily: FONT, fontSize: '16px', color: TEXT.primary, align: 'right' })
+      .text(right, 70, '', { fontFamily: FONT, fontSize: '20px', color: TEXT.primary, align: 'right' })
       .setOrigin(1, 0);
     const help = scene.add
       .text(
@@ -122,7 +122,7 @@ export class Hud {
           'R: mantenimiento · Enter: comunicador · T: velocidad',
           'I: menú de pruebas · Esc: menú',
         ].join('\n'),
-        { fontFamily: FONT, fontSize: '13px', color: TEXT.muted, align: 'right' },
+        { fontFamily: FONT, fontSize: '16px', color: TEXT.muted, align: 'right' },
       )
       .setOrigin(1, 0);
     this.messageText = scene.add
@@ -137,7 +137,7 @@ export class Hud {
     this.alertText = scene.add
       .text(right, 178, '', {
         fontFamily: FONT,
-        fontSize: '16px',
+        fontSize: '20px',
         color: '#ffffff',
         backgroundColor: '#8a1f1f',
         padding: { x: 10, y: 6 },

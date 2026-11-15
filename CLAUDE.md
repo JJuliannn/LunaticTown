@@ -33,7 +33,8 @@ Plazo: hackathon de 2 días. Equipo hispanohablante. La interfaz del juego va en
   - Para poner el arte final se reemplaza el PNG por uno del mismo tamaño, sin tocar código. Nombres y tamaños en `src/ui/assets.ts`.
   - El arte se dibuja a la mitad y se muestra al doble, sin suavizado (`pixelArt: true`). El astronauta es una hoja de 6 cuadros de 16×24: quieto, caminar ×2, salto y trabajar ×2. Su hitbox sigue siendo un rectángulo invisible.
   - Las estaciones sin construir se ven como un plano azul translúcido y las averiadas con tinte rojo.
-- Fuente: Pixelify Sans Bold (Google Fonts, licencia OFL), cargada en `index.html`. `main.ts` espera a que cargue antes de arrancar Phaser.
+- Fuente: Jersey 10 (Google Fonts, licencia OFL, un solo peso), cargada en `index.html`. `main.ts` espera a que cargue antes de arrancar Phaser y desactiva las ligaduras del texto. Antes se usó Pixelify Sans Bold (la cambió el equipo el 2026-11-15).
+- Video demo: en inglés (decisión del equipo, 2026-11-15). El juego sigue en español.
 - Tiempo real. 24 minutos reales = un ciclo lunar completo de día y noche (24 horas locales lunares; 1 minuto real = 1 hora lunar).
 - El Sol es una simulación determinista: hora local + latitud → ángulo del Sol → temperatura (y luego energía solar). Ver `src/sim/sun.ts` y `src/sim/temperature.ts`.
 - Fases de la partida: 1) llegada (nave y suministros), 2) armar lo esencial (casco como base, paneles solares, oxigenador, extractor de hielo), 3) armar lo necesario (hidroponía, grillos, baño), 4) mantenimiento y mejoras.
@@ -92,9 +93,10 @@ Plazo: hackathon de 2 días. Equipo hispanohablante. La interfaz del juego va en
 - Se apoya en cosas ya existentes en vez de empezar de cero.
 - Orden de trabajo: concepto completo primero, base de datos al final para complementarlo.
 
+- Publicación (decisión del equipo, 2026-11-15): Vercel, proyecto `lunatic-town`, https://lunatic-town.vercel.app. Configuración en `vercel.json` (Vite, `npm run build`, salida `dist/`). Publicar desde esta carpeta con `vercel deploy --prod`.
+
 ## Decisiones abiertas
 
-- Publicación: dominio gratuito del reto u otro hosting estático.
 - Área de cultivo de la hidroponía (con ella el rendimiento sale de las tablas del BVAD).
 
 ## Diseño base (conceptual)
@@ -165,6 +167,7 @@ Los recursos del reto (Planetary Computer, Meteomatics) tienen datos de la Tierr
 data/params.json       parámetros con estado de verificación (zonas en science.moon.zones)
 assets/                archivos estáticos (logo.png, sprites/, sonidos); Vite los sirve desde la raíz: assets/logo.png -> logo.png
 tools/make_sprites.py  genera los sprites placeholder (python tools/make_sprites.py)
+video/                 video demo de 30 s hecho con HyperFrames (HTML → MP4): video/index.html; capturas en video/assets/shots/; render en video/renders/ (fuera de git)
 src/main.ts            arranque de Phaser
 src/sim/               lógica pura: step (avance), sun y temperature, processes (estaciones en el tiempo), crew (consumo y barras), actions (desarmar nave, construir, operar, fases), victory (día de misión y laboratorio), environment (luz de los paneles, eclipse polar, radiación), resupply (naves de suministros), work (tareas con duración), events y failures (eventos al azar), shelter (refugio), random (azar con semilla), time (conversiones de tiempo), terrain (incluye cráter)
 src/scenarios/         moon.ts arma la configuración desde params.json; params.ts elige value o playtest_value

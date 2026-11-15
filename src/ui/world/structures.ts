@@ -87,7 +87,7 @@ export class Structures {
     const baseY = groundYAt(centerX);
     this.hull = scene.add.image(centerX, baseY, SPRITES.ship).setOrigin(0.5, 1).setDisplaySize(w, h);
     this.hullLabel = scene.add
-      .text(centerX, baseY - h - 10, '', { fontFamily: FONT, fontSize: '16px', color: TEXT.muted })
+      .text(centerX, baseY - h - 10, '', { fontFamily: FONT, fontSize: '20px', color: TEXT.muted })
       .setOrigin(0.5, 1);
 
     for (const id of BUILDING_IDS) {
@@ -96,12 +96,12 @@ export class Structures {
       this.siteX[id] = x;
       this.sprites[id] = scene.add.image(x, groundY, STATION_SPRITE[id]).setOrigin(0.5, 1).setDisplaySize(MACHINE_W, MACHINE_H);
       this.names[id] = scene.add
-        .text(x, groundY - MACHINE_H - 6, '', { fontFamily: FONT, fontSize: '13px', color: TEXT.primary, align: 'center' })
+        .text(x, groundY - MACHINE_H - 6, '', { fontFamily: FONT, fontSize: '16px', color: TEXT.primary, align: 'center' })
         .setOrigin(0.5, 1);
       this.tags[id] = scene.add
         .text(x, groundY - MACHINE_H - 26, '', {
           fontFamily: FONT,
-          fontSize: '14px',
+          fontSize: '18px',
           color: '#05060a',
           backgroundColor: READY_COLOR,
           padding: { x: 6, y: 3 },
@@ -116,12 +116,12 @@ export class Structures {
     const labY = groundYAt(this.labX);
     this.labSprite = scene.add.image(this.labX, labY, SPRITES.lab).setOrigin(0.5, 1).setDisplaySize(MACHINE_W, MACHINE_H);
     this.labName = scene.add
-      .text(this.labX, labY - MACHINE_H - 6, '', { fontFamily: FONT, fontSize: '13px', color: TEXT.muted, align: 'center' })
+      .text(this.labX, labY - MACHINE_H - 6, '', { fontFamily: FONT, fontSize: '16px', color: TEXT.muted, align: 'center' })
       .setOrigin(0.5, 1);
     this.labTag = scene.add
       .text(this.labX, labY - MACHINE_H - 26, '¡Listo para construir!', {
         fontFamily: FONT,
-        fontSize: '14px',
+        fontSize: '18px',
         color: '#05060a',
         backgroundColor: READY_COLOR,
         padding: { x: 6, y: 3 },
@@ -136,12 +136,12 @@ export class Structures {
     // The supply ship is smaller than the arrival ship: it carries no crew.
     this.padShip = scene.add.image(this.padX, padY, SPRITES.supplyShip).setOrigin(0.5, 1).setScale(SPRITE_SCALE);
     this.padName = scene.add
-      .text(this.padX, padY - MACHINE_H - 6, '', { fontFamily: FONT, fontSize: '13px', color: TEXT.muted, align: 'center' })
+      .text(this.padX, padY - MACHINE_H - 6, '', { fontFamily: FONT, fontSize: '16px', color: TEXT.muted, align: 'center' })
       .setOrigin(0.5, 1);
     this.padTag = scene.add
       .text(this.padX, padY - MACHINE_H - 26, '¡Llegó suministro!', {
         fontFamily: FONT,
-        fontSize: '14px',
+        fontSize: '18px',
         color: '#05060a',
         backgroundColor: READY_COLOR,
         padding: { x: 6, y: 3 },

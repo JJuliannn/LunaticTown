@@ -55,7 +55,7 @@ export class MenuScene extends Phaser.Scene {
     this.add
       .text(cx, GAME_HEIGHT - 30, 'NASA Space Apps Challenge · Reto 03', {
         fontFamily: FONT,
-        fontSize: '14px',
+        fontSize: '18px',
         color: TEXT.muted,
       })
       .setOrigin(0.5);

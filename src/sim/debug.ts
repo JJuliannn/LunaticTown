@@ -59,6 +59,25 @@ export const DEBUG_EVENTS: DebugEvent[] = [
     run: (s) => ({ ...s, resuppliesUnpacked: s.resuppliesUnpacked - 1 }),
   },
   {
+    labelEs: 'Base completa (construye todo y llena reservas)',
+    run: (s, c) => {
+      const day = missionDay(s, c);
+      const stations = Object.fromEntries(
+        BUILDING_IDS.map((id) => [id, { ...s.stations[id], built: true, broken: false, lastMaintainedDay: day }]),
+      ) as GameState['stations'];
+      const r = s.resources;
+      const resources = {
+        ...r,
+        titanium: r.titanium + 50,
+        energy: c.baseBatteryCapacity,
+        oxygen: r.oxygen + 40,
+        water: r.water + 100,
+        rations: r.rations + 30,
+      };
+      return withLog({ ...s, shipUnpacked: true, shelterBuilt: true, stations, resources }, 'Prueba: base completa.');
+    },
+  },
+  {
     labelEs: 'Saltar al día 29',
     run: (s, c) => {
       const hours = (29 * LUNAR_HOURS_PER_CYCLE) / c.dayNightCycleLengthDays.value;

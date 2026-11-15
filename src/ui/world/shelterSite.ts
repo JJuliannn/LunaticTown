@@ -29,7 +29,7 @@ export class ShelterSite {
       .setScale(SPRITE_SCALE)
       .setDepth(1);
     this.name = scene.add
-      .text(this.x, y - 20, '', { fontFamily: FONT, fontSize: '13px', color: TEXT.muted, align: 'center' })
+      .text(this.x, y - 20, '', { fontFamily: FONT, fontSize: '16px', color: TEXT.muted, align: 'center' })
       .setOrigin(0.5, 1);
   }
 

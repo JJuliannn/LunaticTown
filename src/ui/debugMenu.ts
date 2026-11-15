@@ -2,7 +2,9 @@ import Phaser from 'phaser';
 import { DEBUG_EVENTS } from '../sim/debug';
 import { COLORS, FONT, TEXT } from './theme';
 
-const NUMBER_KEYS = ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE'];
+/** 1-9, then 0 for the tenth event. */
+const NUMBER_KEYS = ['ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE', 'ZERO'];
+const keyLabel = (i: number) => String((i + 1) % 10);
 
 /**
  * Test menu for the general events. I opens it, 1-n triggers an event, X closes it.
@@ -17,13 +19,13 @@ export class DebugMenu {
   constructor(scene: Phaser.Scene, onTrigger: (index: number) => void) {
     const lines = [
       'PRUEBAS · eventos',
-      ...DEBUG_EVENTS.slice(0, NUMBER_KEYS.length).map((e, i) => `${i + 1}  ${e.labelEs}`),
+      ...DEBUG_EVENTS.slice(0, NUMBER_KEYS.length).map((e, i) => `${keyLabel(i)}  ${e.labelEs}`),
       '',
       'X  cerrar',
     ];
     this.text = scene.add.text(440, 140, lines.join('\n'), {
       fontFamily: FONT,
-      fontSize: '15px',
+      fontSize: '19px',
       color: TEXT.primary,
       lineSpacing: 6,
     });
