@@ -7,6 +7,7 @@ import { failureChancePerWeek } from '../../sim/failures';
 import { BUILDING_IDS, type BuildingId, type GameState, type ScenarioConfig, type WorkKind } from '../../sim/types';
 import { formatAmounts, RESOURCE_NAMES_ES } from '../labels';
 import { FONT, TEXT } from '../theme';
+import { SPRITE_SCALE, SPRITES, STATION_SPRITE } from '../assets';
 import { BASE_MODULE, TILE } from './constants';
 
 // One site per station, in tiles from the base center. Boxes are placeholders until we have sprites.
@@ -18,23 +19,27 @@ const SLOT_OFFSETS: Record<BuildingId, number> = {
   hydroponics: -14,
   cricket_farm: 14,
 };
-const COLOR_BY_BUILDING: Record<BuildingId, number> = {
-  solar_panels: 0x4d7cff,
-  oxygenator: 0x7fe0ff,
-  ice_extractor: 0xbfe8ff,
-  waste_processor: 0xb08a5a,
-  hydroponics: 0x6fd08c,
-  cricket_farm: 0xd9c46a,
-};
 /** The research lab: the last thing built, it wins the mission. */
 const LAB_OFFSET = 19;
-const LAB_COLOR = 0xc58cff;
 /** Landing pad for the supply ships, mirrored on the other side of the base. */
 const PAD_OFFSET = -19;
 const PAD_COLOR = 0xd8dde8;
 const MACHINE_W = 3 * TILE;
 const MACHINE_H = 2 * TILE;
 const READY_COLOR = '#7fffa0';
+/** Unbuilt sites show their sprite as a translucent blue "blueprint". */
+const BLUEPRINT_TINT = 0x7fb2ff;
+const BLUEPRINT_ALPHA = 0.35;
+const BROKEN_TINT = 0xff7070;
+
+function showBlueprint(img: Phaser.GameObjects.Image): void {
+  img.setTint(BLUEPRINT_TINT).setAlpha(BLUEPRINT_ALPHA);
+}
+function showBuilt(img: Phaser.GameObjects.Image, broken = false): void {
+  if (broken) img.setTint(BROKEN_TINT);
+  else img.clearTint();
+  img.setAlpha(1);
+}
 const BROKEN_COLOR = '#ff8a8a';
 
 /** "8 h" for a task, from its duration in Earth hours. */
@@ -52,17 +57,18 @@ export type Site = { kind: 'ship' } | { kind: 'lab' } | { kind: 'supply' } | { k
  */
 export class Structures {
   private readonly hullLabel: Phaser.GameObjects.Text;
-  private readonly boxes = {} as Record<BuildingId, Phaser.GameObjects.Rectangle>;
+  private readonly sprites = {} as Record<BuildingId, Phaser.GameObjects.Image>;
+  private readonly hull: Phaser.GameObjects.Image;
   private readonly names = {} as Record<BuildingId, Phaser.GameObjects.Text>;
   private readonly tags = {} as Record<BuildingId, Phaser.GameObjects.Text>;
   private readonly siteX = {} as Record<BuildingId, number>;
   private readonly hullHalfWidth = (BASE_MODULE.widthTiles * TILE) / 2;
   private readonly labX: number;
-  private readonly labBox: Phaser.GameObjects.Rectangle;
+  private readonly labSprite: Phaser.GameObjects.Image;
   private readonly labName: Phaser.GameObjects.Text;
   private readonly labTag: Phaser.GameObjects.Text;
   private readonly padX: number;
-  private readonly padShip: Phaser.GameObjects.Rectangle;
+  private readonly padShip: Phaser.GameObjects.Image;
   private readonly padName: Phaser.GameObjects.Text;
   private readonly padTag: Phaser.GameObjects.Text;
 
@@ -79,7 +85,7 @@ export class Structures {
     const w = BASE_MODULE.widthTiles * TILE;
     const h = BASE_MODULE.heightTiles * TILE;
     const baseY = groundYAt(centerX);
-    scene.add.rectangle(centerX, baseY - h / 2, w, h, BASE_MODULE.color, 0.12).setStrokeStyle(2, BASE_MODULE.color);
+    this.hull = scene.add.image(centerX, baseY, SPRITES.ship).setOrigin(0.5, 1).setDisplaySize(w, h);
     this.hullLabel = scene.add
       .text(centerX, baseY - h - 10, '', { fontFamily: FONT, fontSize: '16px', color: TEXT.muted })
       .setOrigin(0.5, 1);
@@ -88,7 +94,7 @@ export class Structures {
       const x = centerX + (slotOverrides[id] ?? SLOT_OFFSETS[id]) * TILE;
       const groundY = groundYAt(x);
       this.siteX[id] = x;
-      this.boxes[id] = scene.add.rectangle(x, groundY - MACHINE_H / 2, MACHINE_W, MACHINE_H, COLOR_BY_BUILDING[id], 0);
+      this.sprites[id] = scene.add.image(x, groundY, STATION_SPRITE[id]).setOrigin(0.5, 1).setDisplaySize(MACHINE_W, MACHINE_H);
       this.names[id] = scene.add
         .text(x, groundY - MACHINE_H - 6, '', { fontFamily: FONT, fontSize: '13px', color: TEXT.primary, align: 'center' })
         .setOrigin(0.5, 1);
@@ -108,7 +114,7 @@ export class Structures {
 
     this.labX = centerX + LAB_OFFSET * TILE;
     const labY = groundYAt(this.labX);
-    this.labBox = scene.add.rectangle(this.labX, labY - MACHINE_H / 2, MACHINE_W, MACHINE_H, LAB_COLOR, 0);
+    this.labSprite = scene.add.image(this.labX, labY, SPRITES.lab).setOrigin(0.5, 1).setDisplaySize(MACHINE_W, MACHINE_H);
     this.labName = scene.add
       .text(this.labX, labY - MACHINE_H - 6, '', { fontFamily: FONT, fontSize: '13px', color: TEXT.muted, align: 'center' })
       .setOrigin(0.5, 1);
@@ -128,7 +134,7 @@ export class Structures {
     const padY = groundYAt(this.padX);
     scene.add.rectangle(this.padX, padY - 3, MACHINE_W + TILE, 6, PAD_COLOR, 0.35);
     // The supply ship is smaller than the arrival ship: it carries no crew.
-    this.padShip = scene.add.rectangle(this.padX, padY - TILE, 2 * TILE, 2 * TILE, PAD_COLOR, 0.12).setStrokeStyle(2, PAD_COLOR);
+    this.padShip = scene.add.image(this.padX, padY, SPRITES.supplyShip).setOrigin(0.5, 1).setScale(SPRITE_SCALE);
     this.padName = scene.add
       .text(this.padX, padY - MACHINE_H - 6, '', { fontFamily: FONT, fontSize: '13px', color: TEXT.muted, align: 'center' })
       .setOrigin(0.5, 1);
@@ -158,6 +164,7 @@ export class Structures {
 
   update(state: GameState, config: ScenarioConfig): void {
     this.hullLabel.setText(state.shipUnpacked ? 'BASE' : 'NAVE');
+    this.hull.setTexture(state.shipUnpacked ? SPRITES.base : SPRITES.ship);
 
     const pending = pendingSupplies(state, config);
     const padVisible = state.shipUnpacked;
@@ -171,14 +178,15 @@ export class Structures {
     const lab = config.victory.lab;
     const labVisible = state.shipUnpacked;
     const labReady = labVisible && labBlockers(state, config).length === 0;
-    this.labBox.setVisible(labVisible);
+    this.labSprite.setVisible(labVisible);
     this.labName.setVisible(labVisible);
     this.labTag.setVisible(labReady && state.status === 'playing');
     if (state.status === 'won') {
-      this.labBox.setFillStyle(LAB_COLOR, 0.35).setStrokeStyle(2, LAB_COLOR, 1);
+      showBuilt(this.labSprite);
       this.labName.setText(lab.nameEs).setColor(TEXT.primary);
     } else {
-      this.labBox.setFillStyle(LAB_COLOR, 0).setStrokeStyle(labReady ? 2 : 1, LAB_COLOR, labReady ? 1 : 0.45);
+      showBlueprint(this.labSprite);
+      if (labReady) this.labSprite.setAlpha(0.6);
       this.labName
         .setText(`${lab.nameEs}\n(día ${config.victory.missionDays})`)
         .setColor(labReady ? TEXT.primary : TEXT.muted);
@@ -187,32 +195,31 @@ export class Structures {
     for (const id of BUILDING_IDS) {
       const def = config.buildings[id];
       const status = stationStatus(state, config, id);
-      const color = COLOR_BY_BUILDING[id];
-      const box = this.boxes[id];
+      const sprite = this.sprites[id];
       const tag = this.tags[id];
 
       // Sites only show up once the ship is dismantled.
       const visible = state.shipUnpacked;
-      box.setVisible(visible);
+      sprite.setVisible(visible);
       this.names[id].setVisible(visible);
       tag.setVisible(visible && (status === 'ready' || status === 'broken'));
       tag.setBackgroundColor(status === 'broken' ? BROKEN_COLOR : READY_COLOR);
       if (!visible) continue;
 
       if (status === 'unbuilt') {
-        box.setFillStyle(color, 0).setStrokeStyle(1, color, 0.45);
+        showBlueprint(sprite);
         this.names[id].setText(`${def.nameEs}\n(sin construir)`).setColor(TEXT.muted);
         continue;
       }
       if (status === 'broken') {
-        box.setFillStyle(0xff5d5d, 0.25).setStrokeStyle(2, 0xff5d5d, 1);
+        showBuilt(sprite, true);
         this.names[id].setText(`${def.nameEs}\nAVERIADA`).setColor(TEXT.warning);
         tag.setText('¡Averiada! Reparar');
         continue;
       }
 
       const percent = Math.round(stationProgress(state, config, id) * 100);
-      box.setFillStyle(color, status === 'running' ? 0.35 : 0.18).setStrokeStyle(2, color, 1);
+      showBuilt(sprite);
       this.names[id].setColor(TEXT.primary);
       if (def.kind === 'collector') {
         this.names[id].setText(`${def.nameEs}\n${Math.floor(state.stations[id].stored)} / ${def.storageCapacity}`);

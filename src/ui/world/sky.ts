@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import type { SunState } from '../../sim/sun';
+import { SPRITE_SCALE, SPRITES } from '../assets';
 import { GAME_HEIGHT, GAME_WIDTH } from '../theme';
 
 // Screen-space path of the Sun. The horizon sits above the station labels so a low polar Sun never covers them.
@@ -14,11 +15,11 @@ const POLAR_SUN_HEIGHT = 30;
  * over the world at night. The lunar sky stays black: there is no atmosphere.
  */
 export class Sky {
-  private readonly sun: Phaser.GameObjects.Arc;
+  private readonly sun: Phaser.GameObjects.Image;
   private readonly veil: Phaser.GameObjects.Rectangle;
 
   constructor(scene: Phaser.Scene) {
-    this.sun = scene.add.circle(0, 0, 26, 0xfff4c2).setScrollFactor(0).setDepth(-1);
+    this.sun = scene.add.image(0, 0, SPRITES.sun).setScale(SPRITE_SCALE).setScrollFactor(0).setDepth(-1);
     this.veil = scene.add
       // Opaque fill; the darkness is controlled with the object's alpha in update().
       .rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x000008, 1)

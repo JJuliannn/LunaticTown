@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { ZONE_IDS } from '../../scenarios/moon';
 import type { ZoneId } from '../../sim/types';
+import { createAnimations, loadGameAssets } from '../assets';
 import { COLORS, FONT, GAME_HEIGHT, GAME_WIDTH, TEXT } from '../theme';
 import { addButton, addStars } from '../widgets';
 
@@ -17,9 +18,11 @@ export class MenuScene extends Phaser.Scene {
   preload(): void {
     // assets/logo.png. If it is missing, the menu falls back to a drawn placeholder.
     this.load.image(LOGO_KEY, 'logo.png');
+    loadGameAssets(this);
   }
 
   create(): void {
+    createAnimations(this);
     // Dev shortcut: open the page with ?zone=<zone id> (e.g. ?zone=shadowed_crater) to skip the menus once.
     const zone = new URLSearchParams(window.location.search).get('zone') as ZoneId | null;
     if (!shortcutUsed && zone && ZONE_IDS.includes(zone)) {

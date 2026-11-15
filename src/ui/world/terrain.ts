@@ -1,29 +1,26 @@
 import Phaser from 'phaser';
-import { TERRAIN_STYLE, TILE } from './constants';
+import { SPRITES } from '../assets';
+import { TILE } from './constants';
 
 /**
- * Draws the terrain as tiles and creates one static physics body per column
- * (cheaper than one body per tile). Returns the group for collisions.
+ * Draws the terrain with the ground tiles (surface on top, rock below) and creates one
+ * static physics body per column (cheaper than one body per tile). Returns the group for collisions.
+ * Blitters draw thousands of tiles in a single batch.
  */
 export function buildTerrain(
   scene: Phaser.Scene,
   heights: number[],
   worldHeight: number,
 ): Phaser.Physics.Arcade.StaticGroup {
-  const g = scene.add.graphics();
+  const surface = scene.add.blitter(0, 0, SPRITES.groundTop);
+  const rock = scene.add.blitter(0, 0, SPRITES.groundRock);
   const group = scene.physics.add.staticGroup();
 
   heights.forEach((h, col) => {
     const x = col * TILE;
     const topY = worldHeight - h * TILE;
-
-    for (let row = 0; row < h; row++) {
-      const y = topY + row * TILE;
-      g.fillStyle(row === 0 ? TERRAIN_STYLE.surface : TERRAIN_STYLE.rock);
-      g.fillRect(x, y, TILE, TILE);
-      g.lineStyle(1, TERRAIN_STYLE.outline);
-      g.strokeRect(x, y, TILE, TILE);
-    }
+    surface.create(x, topY);
+    for (let row = 1; row < h; row++) rock.create(x, topY + row * TILE);
 
     const body = scene.add.zone(x + TILE / 2, topY + (h * TILE) / 2, TILE, h * TILE);
     group.add(body);

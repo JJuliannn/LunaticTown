@@ -3,26 +3,31 @@ import { shelterBlocker } from '../../sim/shelter';
 import type { GameState, ScenarioConfig } from '../../sim/types';
 import { formatAmounts } from '../labels';
 import { FONT, TEXT } from '../theme';
+import { SPRITE_SCALE, SPRITES } from '../assets';
 import { TILE } from './constants';
 
 /** Tiles from the base center: past the landing pad, on the flat ground. */
 const SHELTER_OFFSET = -23;
 const SHELTER_W = 3 * TILE;
-const SHELTER_COLOR = 0x8a7a5a;
+/** Rows of the sprite above the ground line (the rest is the pit, drawn into the ground). */
+const ROWS_ABOVE_GROUND = 8;
+const SPRITE_ROWS = 24;
 
 /** The storm shelter: a hole dug in the regolith, drawn as a dark pit with a hatch. */
 export class ShelterSite {
   readonly x: number;
-  private readonly pit: Phaser.GameObjects.Rectangle;
-  private readonly hatch: Phaser.GameObjects.Rectangle;
+  private readonly sprite: Phaser.GameObjects.Image;
   private readonly name: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene, centerX: number, groundYAt: (x: number) => number) {
     this.x = centerX + SHELTER_OFFSET * TILE;
     const y = groundYAt(this.x);
-    // Drawn into the ground: the shelter is below the surface.
-    this.pit = scene.add.rectangle(this.x, y + TILE / 2, SHELTER_W, TILE, 0x000000, 0.7).setStrokeStyle(1, SHELTER_COLOR, 0.5);
-    this.hatch = scene.add.rectangle(this.x, y - 4, SHELTER_W * 0.6, 8, SHELTER_COLOR, 1);
+    // Partly drawn into the ground: the shelter is a pit below the surface, with a berm and a hatch above.
+    this.sprite = scene.add
+      .image(this.x, y, SPRITES.shelter)
+      .setOrigin(0.5, ROWS_ABOVE_GROUND / SPRITE_ROWS)
+      .setScale(SPRITE_SCALE)
+      .setDepth(1);
     this.name = scene.add
       .text(this.x, y - 20, '', { fontFamily: FONT, fontSize: '13px', color: TEXT.muted, align: 'center' })
       .setOrigin(0.5, 1);
@@ -34,14 +39,14 @@ export class ShelterSite {
 
   update(state: GameState, config: ScenarioConfig): void {
     const visible = state.shipUnpacked;
-    this.pit.setVisible(visible);
-    this.hatch.setVisible(visible && state.shelterBuilt);
+    this.sprite.setVisible(visible);
     this.name.setVisible(visible);
     const shelter = config.events.shelter;
     this.name
       .setText(state.shelterBuilt ? shelter.nameEs : `${shelter.nameEs}\n(sin excavar)`)
       .setColor(state.shelterBuilt ? TEXT.primary : TEXT.muted);
-    this.pit.setStrokeStyle(state.shelterBuilt ? 2 : 1, SHELTER_COLOR, state.shelterBuilt ? 1 : 0.5);
+    if (state.shelterBuilt) this.sprite.clearTint().setAlpha(1);
+    else this.sprite.setTint(0x7fb2ff).setAlpha(0.35);
   }
 
   promptEs(state: GameState, config: ScenarioConfig): string {

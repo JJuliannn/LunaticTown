@@ -19,4 +19,6 @@ export const TEXT = {
   warning: '#ffc857',
 };
 
-export const FONT = 'system-ui, "Segoe UI", sans-serif';
+/** Pixelify Sans Bold, loaded from Google Fonts in index.html. */
+export const FONT_FACE = 'Pixelify Sans';
+export const FONT = `"${FONT_FACE}", monospace`;
