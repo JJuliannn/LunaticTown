@@ -28,7 +28,7 @@ export function createInitialState(config: ScenarioConfig, zoneId: ZoneId): Game
   const crew = Array.from({ length: config.crewSize }, (_, i) => createAstronaut(i));
   return {
     zoneId,
-    hour: 0,
+    elapsedLunarHours: 0,
     resources: { ...START_RESOURCES },
     crew,
   };

@@ -1,39 +1,229 @@
 {
-  "_readme": "kind=design: decisión libre del equipo. kind=science: dato real que necesita fuente. Un parámetro science solo pasa a 'verified' con source_url. Mientras tanto el juego usa playtest_value (unidades de juego, NO reales).",
-  "status_values": ["needs_source", "verified", "open_question"],
+  "_readme": "kind=design: decisión libre del equipo. kind=science: dato real que necesita fuente. Estados: needs_source (sin fuente, el juego usa playtest_value, unidades de juego NO reales); sourced (valor leído de una fuente que dio el equipo, falta que una persona lo revise contra el documento; el juego ya lo usa); verified (con source_url y confirmado por el equipo); decided (decisión de diseño tomada); open_question (decisión pendiente).",
+  "status_values": [
+    "needs_source",
+    "sourced",
+    "verified",
+    "decided",
+    "open_question"
+  ],
   "design": {
-    "crew_size": { "value": null, "status": "open_question", "playtest_value": 4 },
-    "tick_unit": { "value": null, "status": "open_question", "playtest_value": "1 tick = 1 hora de juego" },
-    "oxygen_tank_share": { "value": null, "status": "open_question", "note": "La mentora mencionó 30%. Confirmar qué significa." },
-    "game_mode": { "value": null, "status": "open_question", "playtest_value": "turn_based" }
+    "crew_size": {
+      "value": null,
+      "status": "open_question",
+      "playtest_value": 4
+    },
+    "oxygen_tank_share": {
+      "value": null,
+      "status": "open_question",
+      "note": "La mentora mencionó 30%. Confirmar qué significa."
+    },
+    "game_mode": {
+      "value": "real_time",
+      "status": "decided"
+    },
+    "real_minutes_per_lunar_cycle": {
+      "value": 24,
+      "status": "decided",
+      "note": "24 minutos reales = un ciclo lunar completo de día y noche (24 horas locales lunares). 1 minuto real = 1 hora local lunar."
+    },
+    "start_local_hour": {
+      "value": null,
+      "status": "open_question",
+      "playtest_value": 7,
+      "note": "Hora local lunar a la que aterriza la nave."
+    }
   },
   "science": {
-    "oxygen_per_crew_per_day": { "value": null, "unit": "to_define", "status": "needs_source", "playtest_value": 1, "source_url": null, "candidate_sources": ["NASA, soporte vital de la ISS"] },
-    "water_per_crew_per_day": { "value": null, "unit": "to_define", "status": "needs_source", "playtest_value": 1, "source_url": null, "candidate_sources": ["NASA, soporte vital de la ISS"] },
-    "food_per_crew_per_day": { "value": null, "unit": "to_define", "status": "needs_source", "playtest_value": 1, "source_url": null, "candidate_sources": ["NASA, nutrición de astronautas"] },
-    "radiation_limit_crew": { "value": null, "unit": "to_define", "status": "needs_source", "playtest_value": 100, "source_url": null, "candidate_sources": ["límites de exposición de la NASA"] },
+    "oxygen_per_crew_per_day": {
+      "value": 0.895,
+      "unit": "kg/persona/día terrestre",
+      "status": "sourced",
+      "playtest_value": 1,
+      "source_url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+      "source_note": "BVAD Rev2 (2022), Tabla 3-31, Oxygen Consumed, pág. 58."
+    },
+    "water_per_crew_per_day": {
+      "value": 3.217,
+      "unit": "kg/persona/día terrestre",
+      "status": "sourced",
+      "playtest_value": 1,
+      "source_url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+      "source_note": "BVAD Rev2 (2022), Tabla 3-31, Potable Water Content: 2,00 beber + 0,5 preparar comida + 0,717 por ejercicio."
+    },
+    "food_per_crew_per_day": {
+      "value": 0.8,
+      "unit": "kg secos/persona/día terrestre",
+      "status": "sourced",
+      "playtest_value": 1,
+      "source_url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+      "source_note": "BVAD Rev2 (2022), Tabla 3-31, Food Solids (sin empaque, masa seca)."
+    },
+    "radiation_limit_crew": {
+      "value": null,
+      "unit": "to_define",
+      "status": "needs_source",
+      "playtest_value": 100,
+      "source_url": null,
+      "candidate_sources": [
+        "límites de exposición de la NASA"
+      ]
+    },
     "moon": {
-      "day_night_cycle_length": { "value": null, "unit": "days", "status": "needs_source", "playtest_value": 30, "source_url": null },
-      "surface_radiation_dose": { "value": null, "unit": "to_define", "status": "needs_source", "playtest_value": 1, "source_url": null, "candidate_sources": ["LRO CRaTER (PDS)"] },
-      "solar_irradiance": { "value": null, "unit": "to_define", "status": "needs_source", "playtest_value": 1, "source_url": null },
+      "day_night_cycle_length": {
+        "value": null,
+        "unit": "days",
+        "status": "needs_source",
+        "playtest_value": 30,
+        "source_url": null
+      },
+      "surface_radiation_dose": {
+        "value": null,
+        "unit": "to_define",
+        "status": "needs_source",
+        "playtest_value": 1,
+        "source_url": null,
+        "candidate_sources": [
+          "LRO CRaTER (PDS)"
+        ]
+      },
+      "solar_irradiance": {
+        "value": null,
+        "unit": "to_define",
+        "status": "needs_source",
+        "playtest_value": 1,
+        "source_url": null
+      },
       "zones": {
         "_note": "Valores por zona. heat en escala de juego 0-100. sunlight_share = fracción del ciclo con luz (0-1). radiation_factor multiplica surface_radiation_dose. Candidatas: LRO Diviner (temperatura), LOLA (iluminación/topografía), CRaTER (radiación).",
         "south_pole": {
           "name_es": "Polo sur",
-          "latitude_deg": { "value": null, "unit": "deg", "status": "needs_source", "playtest_value": -89, "source_url": null },
-          "sunlight_share": { "value": null, "unit": "fraction", "status": "needs_source", "playtest_value": 0.8, "source_url": null, "candidate_sources": ["LRO LOLA (PDS)"] },
-          "day_heat_peak": { "value": null, "unit": "game_heat_0_100", "status": "needs_source", "playtest_value": 35, "source_url": null, "candidate_sources": ["LRO Diviner (PDS)"] },
-          "night_heat_floor": { "value": null, "unit": "game_heat_0_100", "status": "needs_source", "playtest_value": 5, "source_url": null, "candidate_sources": ["LRO Diviner (PDS)"] },
-          "radiation_factor": { "value": null, "unit": "multiplier", "status": "needs_source", "playtest_value": 1, "source_url": null, "candidate_sources": ["LRO CRaTER (PDS)"] }
+          "latitude_deg": {
+            "value": -85,
+            "status": "decided",
+            "note": "Región polar del artículo de Diviner (más allá de 85°)."
+          },
+          "sunlight_share": {
+            "value": null,
+            "unit": "fraction",
+            "status": "needs_source",
+            "playtest_value": 0.8,
+            "source_url": null,
+            "candidate_sources": [
+              "LRO LOLA (PDS)"
+            ]
+          },
+          "day_heat_peak": {
+            "value": null,
+            "unit": "game_heat_0_100",
+            "status": "needs_source",
+            "playtest_value": 35,
+            "source_url": null,
+            "candidate_sources": [
+              "LRO Diviner (PDS)"
+            ]
+          },
+          "night_heat_floor": {
+            "value": null,
+            "unit": "game_heat_0_100",
+            "status": "needs_source",
+            "playtest_value": 5,
+            "source_url": null,
+            "candidate_sources": [
+              "LRO Diviner (PDS)"
+            ]
+          },
+          "radiation_factor": {
+            "value": null,
+            "unit": "multiplier",
+            "status": "needs_source",
+            "playtest_value": 1,
+            "source_url": null,
+            "candidate_sources": [
+              "LRO CRaTER (PDS)"
+            ]
+          }
         },
         "equator": {
           "name_es": "Ecuador",
-          "latitude_deg": { "value": null, "unit": "deg", "status": "needs_source", "playtest_value": 0, "source_url": null },
-          "sunlight_share": { "value": null, "unit": "fraction", "status": "needs_source", "playtest_value": 0.5, "source_url": null, "candidate_sources": ["LRO LOLA (PDS)"] },
-          "day_heat_peak": { "value": null, "unit": "game_heat_0_100", "status": "needs_source", "playtest_value": 95, "source_url": null, "candidate_sources": ["LRO Diviner (PDS)"] },
-          "night_heat_floor": { "value": null, "unit": "game_heat_0_100", "status": "needs_source", "playtest_value": 15, "source_url": null, "candidate_sources": ["LRO Diviner (PDS)"] },
-          "radiation_factor": { "value": null, "unit": "multiplier", "status": "needs_source", "playtest_value": 1, "source_url": null, "candidate_sources": ["LRO CRaTER (PDS)"] }
+          "latitude_deg": {
+            "value": 0,
+            "status": "decided"
+          },
+          "sunlight_share": {
+            "value": null,
+            "unit": "fraction",
+            "status": "needs_source",
+            "playtest_value": 0.5,
+            "source_url": null,
+            "candidate_sources": [
+              "LRO LOLA (PDS)"
+            ]
+          },
+          "day_heat_peak": {
+            "value": null,
+            "unit": "game_heat_0_100",
+            "status": "needs_source",
+            "playtest_value": 95,
+            "source_url": null,
+            "candidate_sources": [
+              "LRO Diviner (PDS)"
+            ]
+          },
+          "night_heat_floor": {
+            "value": null,
+            "unit": "game_heat_0_100",
+            "status": "needs_source",
+            "playtest_value": 15,
+            "source_url": null,
+            "candidate_sources": [
+              "LRO Diviner (PDS)"
+            ]
+          },
+          "radiation_factor": {
+            "value": null,
+            "unit": "multiplier",
+            "status": "needs_source",
+            "playtest_value": 1,
+            "source_url": null,
+            "candidate_sources": [
+              "LRO CRaTER (PDS)"
+            ]
+          }
         }
+      },
+      "temperature_model": {
+        "status": "sourced",
+        "source_url": "https://doi.org/10.1016/j.icarus.2016.08.012",
+        "source_note": "Williams et al. 2017, Icarus 283, 300-325 (Diviner). Ecuación 1 y albedo de Vasavada et al. 2012 citados ahí; temperaturas del ecuador por hora local en la sección 4.1.",
+        "value": {
+          "solar_constant_w_m2": 1370,
+          "emissivity": 0.95,
+          "albedo_normal": 0.08,
+          "albedo_coef_a": 0.045,
+          "albedo_coef_b": 0.14,
+          "equator_floor_kelvin_by_hour": {
+            "5": 95,
+            "6": 133,
+            "18": 163,
+            "19": 117
+          },
+          "polar_cap_latitude_deg": 85
+        },
+        "reference_checks": {
+          "equator_max_k": 392.3,
+          "equator_min_k": 94.3,
+          "polar_max_k": 202,
+          "polar_min_k": 50
+        },
+        "our_assumptions": "Entre los puntos del artículo se interpola en línea recta. El piso nocturno de otras latitudes se escala con cos(latitud)^(1/4), que da ~52 K a 85° (artículo: 50 K). Inclinación del eje (1,54°) ignorada."
+      },
+      "oxygen_from_regolith": {
+        "value": null,
+        "status": "needs_source",
+        "source_url": "https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf",
+        "source_note": "BVAD Rev2 sección ISRU (pág. 166): reducción carbotérmica, CH4 + regolito fundido (>1650 °C) -> CO/CO2 -> metanación -> H2O -> electrólisis -> O2. Proceso confirmado; faltan cifras de producción y potencia (Tabla 4-85 ilegible en la extracción, revisar a mano).",
+        "playtest_value": 1
       }
     }
   }

@@ -2,21 +2,33 @@ import type { ParamValue } from '../sim/types';
 
 /** Shape of one entry in data/params.json. */
 export interface RawParam {
-  value: number | null;
+  value: unknown;
   status: string;
   playtest_value?: unknown;
   source_url?: string | null;
 }
 
 /**
- * Picks the value the game should use: the real value only when it is verified
- * and has a source, otherwise the playtest value.
+ * True when the entry's own `value` can be used by the game:
+ * - decided: a design decision of the team.
+ * - sourced / verified: a real value with a source. "sourced" still needs a human check.
  */
+export function hasUsableValue(param: RawParam): boolean {
+  if (param.value === null || param.value === undefined) return false;
+  if (param.status === 'decided') return true;
+  return (param.status === 'verified' || param.status === 'sourced') && !!param.source_url;
+}
+
+/** Only "verified" (source + team confirmation) and design decisions count as confirmed. */
+export function isConfirmed(param: RawParam): boolean {
+  return hasUsableValue(param) && (param.status === 'verified' || param.status === 'decided');
+}
+
+/** Picks the value the game should use: the real one when usable, otherwise the playtest value. */
 export function readNumber(param: RawParam, name: string): ParamValue {
-  const verified = param.status === 'verified' && param.value !== null && !!param.source_url;
-  const raw = verified ? param.value : param.playtest_value;
+  const raw = hasUsableValue(param) ? param.value : param.playtest_value;
   if (typeof raw !== 'number') {
     throw new Error(`params.json: "${name}" has no numeric value to use`);
   }
-  return { value: raw, verified };
+  return { value: raw, verified: isConfirmed(param) };
 }

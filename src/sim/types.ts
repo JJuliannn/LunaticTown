@@ -20,9 +20,33 @@ export interface ZoneConfig {
   radiationFactor: ParamValue;
 }
 
+export interface TimeConfig {
+  /** Real minutes for one full lunar day/night cycle (24 lunar local hours). */
+  realMinutesPerLunarCycle: number;
+  /** Lunar local hour (0-24) at mission start. */
+  startLocalHour: number;
+}
+
+/** Surface temperature model constants (Williams et al. 2017, Diviner). */
+export interface TemperatureModel {
+  solarConstant: number;
+  emissivity: number;
+  albedoNormal: number;
+  albedoCoefA: number;
+  albedoCoefB: number;
+  /** Equator temperatures (K) near terminators and at night, by lunar local hour, sorted by hour. */
+  equatorFloor: { hour: number; kelvin: number }[];
+  /** Latitudes beyond this are treated as this latitude (limit of the paper's polar data). */
+  polarCapLatitudeDeg: number;
+  /** False while the values still need a human check against the paper. */
+  verified: boolean;
+}
+
 export interface ScenarioConfig {
   id: 'moon';
   crewSize: number;
+  time: TimeConfig;
+  temperature: TemperatureModel;
   dayNightCycleLengthDays: ParamValue;
   surfaceRadiationDose: ParamValue;
   oxygenPerCrewPerDay: ParamValue;
@@ -53,8 +77,8 @@ export interface Resources {
 
 export interface GameState {
   zoneId: ZoneId;
-  /** Elapsed game hours since mission start. */
-  hour: number;
+  /** Lunar local hours elapsed since mission start (24 = one full day/night cycle). */
+  elapsedLunarHours: number;
   resources: Resources;
   crew: Astronaut[];
 }

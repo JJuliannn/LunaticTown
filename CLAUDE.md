@@ -10,7 +10,7 @@ Plazo: hackathon de 2 días. Equipo hispanohablante. La interfaz del juego va en
 
 ## Reglas para Claude Code
 
-1. **No inventes datos científicos.** Todo número del mundo real vive en `data/params.json` con su `status`. Solo se marca `verified` cuando tiene `source_url` y el equipo lo confirmó. Hoy no hay ningún dato científico verificado.
+1. **No inventes datos científicos.** Todo número del mundo real vive en `data/params.json` con su `status`. Solo se marca `verified` cuando tiene `source_url` y el equipo lo confirmó. Un dato `sourced` salió de una fuente que dio el equipo pero falta que una persona lo revise contra el documento; el juego ya lo usa y la interfaz lo marca con asterisco.
 2. Mientras un dato no esté verificado, el juego usa su `playtest_value` (unidades de juego, no reales). La interfaz no debe presentar esos valores como datos reales de la NASA.
 3. La simulación (`src/sim/`) no conoce el render. Son funciones puras: `step(state, config, dt) -> state`. Así se puede probar y cambiar la interfaz sin romper la lógica.
 4. Primero el concepto y los problemas grandes, después los detalles. No pulir gráficos antes de que el bucle de juego funcione.
@@ -23,6 +23,16 @@ Plazo: hackathon de 2 días. Equipo hispanohablante. La interfaz del juego va en
 - La Luna se juega por zonas. Flujo: pantalla de inicio → elegir zona → partida. Zonas iniciales: polo sur y ecuador; se agregan más después.
 - Stack: Vite + TypeScript + Phaser 3. Escenas de Phaser en `src/ui/scenes/`.
 - Vista de la partida: lateral, estilo Terraria. El astronauta se mueve de izquierda a derecha sobre terreno de bloques. Mientras no haya sprites, el jugador es su hitbox (rectángulo).
+- Tiempo real. 24 minutos reales = un ciclo lunar completo de día y noche (24 horas locales lunares; 1 minuto real = 1 hora lunar).
+- El Sol es una simulación determinista: hora local + latitud → ángulo del Sol → temperatura (y luego energía solar). Ver `src/sim/sun.ts` y `src/sim/temperature.ts`.
+- El ecuador es la zona difícil: no tiene hielo, el agua se trae y se recicla.
+- Fases de la partida: 1) llegada (nave y suministros), 2) armar lo esencial (casco como base, paneles solares, oxigenador, extractor de hielo), 3) armar lo necesario (hidroponía, grillos, baño), 4) mantenimiento y mejoras.
+- La nave se desarma en titanio y comunicaciones; su casco es la base principal. Suministros: minerales para purificar agua, sustrato y semillas no híbridas (rábano, lechuga romana, pak choi).
+- Oxigenador: reducción carbotérmica del regolito (descrita en el BVAD, sección ISRU).
+- Agua: extractor de hielo polar + purificación con minerales. LCROSS es la misión que detectó el agua (evidencia), no el nombre de la máquina.
+- Comida: hidroponía con luz artificial y cultivo de grillos para proteína. Los desechos humanos se procesan para obtener nitrógeno (nutriente de la hidroponía).
+- Radiación: protegen la cerámica del casco de la nave y el traje del astronauta; no se construye blindaje aparte.
+- Los paneles solares ya incluyen baterías.
 - La temperatura se modela por zona y hora local, no como promedio.
 - El oxígeno se maneja con dos fuentes: tanques de reserva (finitos, seguridad) y producción (recurso a gestionar).
 - Ciclo cerrado de nutrientes: nitrógeno, bacterias, plantas, oxígeno.
@@ -32,7 +42,6 @@ Plazo: hackathon de 2 días. Equipo hispanohablante. La interfaz del juego va en
 
 ## Decisiones abiertas
 
-- ¿Por turnos o en tiempo real con aceleración?
 - ¿Qué significa exactamente el 30% que mencionó la mentora (espacio de la base, presupuesto, otra cosa)?
 - Publicación: dominio gratuito del reto u otro hosting estático.
 - Edad del público objetivo (afecta el nivel de detalle).
@@ -55,7 +64,15 @@ Plazo: hackathon de 2 días. Equipo hispanohablante. La interfaz del juego va en
 
 ## Estado de los datos
 
-Verificado numéricamente: nada.
+Verificado por una persona: nada todavía.
+
+Con fuente, pendientes de revisión (`sourced` en `params.json`):
+- Temperatura de la superficie: Williams et al. 2017, Icarus 283 (Diviner), https://doi.org/10.1016/j.icarus.2016.08.012. Fórmula de día y temperaturas del ecuador por hora local. La interpolación entre puntos y el escalado del piso nocturno por latitud son supuestos nuestros.
+- Consumo por persona y día terrestre (oxígeno 0,895 kg, agua potable 3,217 kg, comida seca 0,8 kg): BVAD Rev2 2022, Tabla 3-31, https://ntrs.nasa.gov/api/citations/20210024855/downloads/BVAD_2.15.22-final.pdf
+
+Lista de referencias del equipo: "Referencias Finales.pdf" (grillos, HIDH/BVAD, Diviner, regolito y plantas, LCROSS, paneles solares).
+
+Faltan: producción y potencia del oxigenador, duración del ciclo lunar en días terrestres (para convertir el consumo diario a horas lunares), iluminación del polo sur, radiación, rendimiento de cultivos y grillos.
 
 Solo se confirmó que estos conjuntos existen en el archivo de la NASA (PDS):
 - LRO: Diviner (temperaturas), LOLA (topografía), LEND (neutrones, indicador de hidrógeno), CRaTER (radiación). https://pds-geosciences.wustl.edu/missions/lro/
@@ -69,6 +86,7 @@ Los recursos del reto (Planetary Computer, Meteomatics) tienen datos de la Tierr
 
 ```
 data/params.json       parámetros con estado de verificación (zonas en science.moon.zones)
+assets/                archivos estáticos (logo.png, sprites, sonidos); Vite los sirve desde la raíz: assets/logo.png -> logo.png
 src/main.ts            arranque de Phaser
 src/sim/               lógica pura (tipos, estado inicial, generación de terreno; luego step, eventos, salud)
 src/scenarios/         moon.ts arma la configuración desde params.json; params.ts elige value o playtest_value

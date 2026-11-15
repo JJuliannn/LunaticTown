@@ -1,6 +1,6 @@
 import params from '../../data/params.json';
-import type { ScenarioConfig, ZoneConfig, ZoneId } from '../sim/types';
-import { readNumber, type RawParam } from './params';
+import type { ScenarioConfig, TemperatureModel, ZoneConfig, ZoneId } from '../sim/types';
+import { isConfirmed, readNumber, type RawParam } from './params';
 
 type RawZone = Record<string, RawParam> & { name_es: string };
 
@@ -18,14 +18,37 @@ function buildZone(id: ZoneId): ZoneConfig {
   };
 }
 
+function buildTemperatureModel(): TemperatureModel {
+  const raw = params.science.moon.temperature_model;
+  const v = raw.value;
+  const equatorFloor = Object.entries(v.equator_floor_kelvin_by_hour)
+    .map(([hour, kelvin]) => ({ hour: Number(hour), kelvin }))
+    .sort((a, b) => a.hour - b.hour);
+  return {
+    solarConstant: v.solar_constant_w_m2,
+    emissivity: v.emissivity,
+    albedoNormal: v.albedo_normal,
+    albedoCoefA: v.albedo_coef_a,
+    albedoCoefB: v.albedo_coef_b,
+    equatorFloor,
+    polarCapLatitudeDeg: v.polar_cap_latitude_deg,
+    verified: isConfirmed(raw),
+  };
+}
+
 export const ZONE_IDS: ZoneId[] = ['south_pole', 'equator'];
 
 export function buildMoonScenario(): ScenarioConfig {
   const s = params.science;
-  const crewSize = params.design.crew_size.playtest_value;
+  const d = params.design;
   return {
     id: 'moon',
-    crewSize,
+    crewSize: d.crew_size.playtest_value,
+    time: {
+      realMinutesPerLunarCycle: readNumber(d.real_minutes_per_lunar_cycle, 'real_minutes_per_lunar_cycle').value,
+      startLocalHour: readNumber(d.start_local_hour, 'start_local_hour').value,
+    },
+    temperature: buildTemperatureModel(),
     dayNightCycleLengthDays: readNumber(s.moon.day_night_cycle_length, 'moon.day_night_cycle_length'),
     surfaceRadiationDose: readNumber(s.moon.surface_radiation_dose, 'moon.surface_radiation_dose'),
     oxygenPerCrewPerDay: readNumber(s.oxygen_per_crew_per_day, 'oxygen_per_crew_per_day'),
